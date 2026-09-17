@@ -169,6 +169,34 @@ export async function onRequest(context) {
       return json({ ok: true });
     }
 
+
+    if (body.action === 'delete_media') {
+      const input = Array.isArray(body.paths) ? body.paths.slice(0, 60) : [];
+      const marker = '/storage/v1/object/public/site-media/';
+      const cleaned = input.map(value => {
+        let raw = String(value || '').trim();
+        if (!raw || raw.startsWith('local:') || raw.startsWith('/assets/')) return '';
+        if (/^https?:\/\//i.test(raw)) {
+          if (!raw.startsWith(url)) return '';
+          const at = raw.indexOf(marker);
+          if (at < 0) return '';
+          raw = raw.slice(at + marker.length);
+        }
+        raw = raw.replace(/^site-media\//, '').replace(/^storage\/v1\/object\/public\/site-media\//, '').replace(/^\/+/, '');
+        return raw;
+      }).filter(Boolean);
+
+      const storageHeaders = { apikey: service };
+      if (isLegacyJwt) storageHeaders.Authorization = `Bearer ${service}`;
+      let removed = 0;
+      for (const path of [...new Set(cleaned)]) {
+        const safePath = path.split('/').map(encodeURIComponent).join('/');
+        const response = await fetch(`${url}/storage/v1/object/site-media/${safePath}`, { method: 'DELETE', headers: storageHeaders });
+        if (response.ok || response.status === 404) removed++;
+      }
+      return json({ ok: true, removed });
+    }
+
     if (body.action === 'upload') {
       const match = String(body.dataUrl || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
       if (!match) return json({ error: 'Only JPEG, PNG or WebP images are allowed' }, 400);
@@ -184,7 +212,8 @@ export async function onRequest(context) {
         method: 'POST',
         headers: {
           'Content-Type': match[1],
-          'x-upsert': 'true'
+          'x-upsert': 'true',
+          'cache-control': '31536000'
         },
         body: bytes
       });
