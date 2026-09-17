@@ -7,7 +7,14 @@ const endpoint='/api/admin';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const cleanGroupName=v=>String(v||'').replace(/^[\s🌏🌍]+/u,'').trim();
 const lines=id=>$(id).value.split('\n').map(x=>x.trim()).filter(Boolean);
-const mediaUrl=p=>!p?'':`${window.EZYGO_CONFIG.SUPABASE_URL}/storage/v1/object/public/${window.EZYGO_CONFIG.STORAGE_BUCKET}/${String(p).replace(/^\/+/, '')}`;
+const mediaUrl=p=>{
+  if(!p)return'';
+  const raw=String(p).trim();
+  if(raw.startsWith('local:'))return raw.slice(6);
+  if(raw.startsWith('/assets/'))return raw;
+  if(/^https?:\/\//i.test(raw))return raw;
+  return `${window.EZYGO_CONFIG.SUPABASE_URL}/storage/v1/object/public/${window.EZYGO_CONFIG.STORAGE_BUCKET}/${raw.replace(/^\/+/, '')}`;
+};
 
 function setLoginStatus(message='', type=''){
   const el=$('#loginStatus'); if(!el) return;
@@ -98,91 +105,7 @@ function editPackage(id){const p=data.packages.find(x=>x.id===id);edit.package=i
 function editGallery(id){const g=data.galleries.find(x=>x.id===id);edit.gallery=id;$('#galleryFormTitle').textContent='Edit gallery';$('#gTitle').value=g.title||'';$('#gDesc').value=g.description||'';scrollTo({top:0,behavior:'smooth'})}
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;for(const [attr,fn] of [['vup',()=>reorderVisa(b.dataset.vup,-1)],['vdown',()=>reorderVisa(b.dataset.vdown,1)],['pup',()=>reorder('packages',b.dataset.pup,-1)],['pdown',()=>reorder('packages',b.dataset.pdown,1)],['aup',()=>reorder('galleries',b.dataset.aup,-1)],['adown',()=>reorder('galleries',b.dataset.adown,1)],['gup',()=>reorder('visa_groups',b.dataset.gup,-1)],['gdown',()=>reorder('visa_groups',b.dataset.gdown,1)]])if(b.dataset[attr]!==undefined)return fn();if(b.dataset.vedit)return editVisa(b.dataset.vedit);if(b.dataset.pedit)return editPackage(b.dataset.pedit);if(b.dataset.aedit)return editGallery(b.dataset.aedit);for(const [attr,table] of [['vdel','visa_cards'],['pdel','packages'],['adel','galleries'],['gdel','visa_groups'],['fdel','feedback']])if(b.dataset[attr]){if(confirm('Delete this item?')){await call('delete',{table,id:b.dataset[attr]});await refresh()}return}});
 
-function parseBulkFiles(fileList){
-  const grouped={visa:{},packages:{}};
-  for(const file of [...fileList]){
-    const rel=String(file.webkitRelativePath||file.name).replace(/\\/g,'/');
-    const parts=rel.split('/').filter(Boolean);
-    let k=parts.findIndex(p=>p==='visa'||p==='packages');
-    if(k<0 || !parts[k+1]) continue;
-    const kind=parts[k];
-    let id=parts[k+1];
-    if(kind==='packages'){
-      if(id==='lakshadweep') id='lakshadweep-3n4d';
-      if(id==='delhi-manali') id='delhi-manali-5n6d';
-    }
-    const name=(parts.slice(k+2).join('/')||file.name).toLowerCase();
-    if(!grouped[kind][id]) grouped[kind][id]=[];
-    grouped[kind][id].push({file,name});
-  }
-  return grouped;
-}
-function updateBulkSummary(){
-  const files=$('#bulkFolder')?.files||[];
-  const grouped=parseBulkFiles(files);
-  const visaCount=Object.keys(grouped.visa).length;
-  const packageCount=Object.keys(grouped.packages).length;
-  const el=$('#bulkSummary');
-  if(el) el.innerHTML=files.length
-    ? `<span>${files.length} images</span><span>${visaCount} visa folders</span><span>${packageCount} package folders</span>`
-    : '<span>No folder selected</span>';
-}
-function setBulkProgress(done,total,message=''){
-  const pct=total?Math.round(done/total*100):0;
-  const bar=$('#bulkProgressBar'); if(bar) bar.style.width=pct+'%';
-  const status=$('#bulkStatus'); if(status) status.textContent=`${message}${message?'\n':''}${done} / ${total} images · ${pct}%`;
-}
-async function setMedia(table,id,coverPath,imagePaths){
-  return call('set_media',{table,id,coverPath,imagePaths});
-}
-async function bulkUploadStarterMedia(){
-  const input=$('#bulkFolder');
-  const files=[...(input?.files||[])];
-  if(!files.length) return alert('Select the extracted SUPABASE_IMAGE_IMPORT folder first.');
-  const grouped=parseBulkFiles(files);
-  const visaIds=Object.keys(grouped.visa);
-  const packageIds=Object.keys(grouped.packages);
-  if(!visaIds.length && !packageIds.length) return alert('No visa/ or packages/ folders were found. Select the SUPABASE_IMAGE_IMPORT folder.');
-  if(!confirm(`Upload ${files.length} images to Supabase Storage now? Keep this page open until it finishes.`)) return;
-
-  const btn=$('#bulkUploadBtn'); btn.disabled=true; btn.textContent='Uploading…';
-  let done=0, total=files.length, failures=[];
-
-  async function uploadGroup(kind,id,entries){
-    const sorted=[...entries].sort((a,b)=>a.name.localeCompare(b.name));
-    const coverEntry=sorted.find(x=>/(^|\/)cover\.(jpg|jpeg|png|webp)$/i.test(x.name)) || sorted[0];
-    const otherEntries=sorted.filter(x=>x!==coverEntry);
-    try{
-      const root=kind==='visa'?`visas/${id}/starter`:`packages/${id}/starter`;
-      const coverPath=await upload(coverEntry.file,root);
-      done++; setBulkProgress(done,total,`Uploading ${kind}: ${id}`);
-      const imagePaths=[];
-      for(const entry of otherEntries){
-        imagePaths.push(await upload(entry.file,root));
-        done++; setBulkProgress(done,total,`Uploading ${kind}: ${id}`);
-      }
-      await setMedia(kind==='visa'?'visa_cards':'packages',id,coverPath,imagePaths);
-      const status=$('#bulkStatus'); if(status) status.textContent=`Linked ${kind}: ${id} to Supabase Storage images.`;
-    }catch(err){
-      failures.push(`${kind}/${id}: ${err.message||err}`);
-      const remaining=entries.length-(done<total?0:0);
-    }
-  }
-
-  for(const id of visaIds) await uploadGroup('visa',id,grouped.visa[id]);
-  for(const id of packageIds) await uploadGroup('packages',id,grouped.packages[id]);
-
-  btn.disabled=false; btn.textContent='Upload all starter images to Supabase';
-  await refresh();
-  if(failures.length){
-    $('#bulkStatus').textContent=`Finished with ${failures.length} problem(s):\n`+failures.join('\n');
-  }else{
-    setBulkProgress(total,total,'Finished. All starter images are now stored in Supabase Storage.');
-  }
-}
-
 $$('.tab').forEach(b=>b.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));$$('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});
 $('#loginBtn').onclick=login;$('#loginId').onkeydown=e=>{if(e.key==='Enter')login()};$('#logoutBtn').onclick=()=>{sessionStorage.clear();location.reload()};$('#saveVisa').onclick=saveVisa;$('#clearVisa').onclick=clearVisa;$('#savePackage').onclick=savePackage;$('#clearPackage').onclick=clearPackage;$('#saveGallery').onclick=saveGallery;$('#clearGallery').onclick=clearGallery;$('#addGroup').onclick=async()=>{const name=$('#newGroup').value.trim();if(!name)return;await call('upsert',{table:'visa_groups',record:{id:slug(name)+'-'+Date.now(),name,active:true}});$('#newGroup').value='';await refresh()};
-const bulkFolderEl=$('#bulkFolder');if(bulkFolderEl)bulkFolderEl.onchange=updateBulkSummary;const bulkUploadEl=$('#bulkUploadBtn');if(bulkUploadEl)bulkUploadEl.onclick=bulkUploadStarterMedia;
 tryAutoLogin();
 })();

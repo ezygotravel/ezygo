@@ -20,14 +20,22 @@
     const raw=String(path||'').trim();
     if (!raw) return svgPlaceholder(label).trim();
     if (/^data:image\//i.test(raw)) return raw;
+
+    // Initial prebuilt images live inside the deployed /assets folder.
+    if (raw.startsWith('local:')) return raw.slice(6);
+    if (raw.startsWith('/assets/')) return raw;
+
+    // Future images uploaded from Admin are stored in Supabase Storage.
     if (/^https?:\/\//i.test(raw)) {
       if (raw.startsWith(C.SUPABASE_URL)) return raw;
       return svgPlaceholder(label).trim();
     }
+
     const clean=raw
       .replace(/^site-media\//,'')
       .replace(/^storage\/v1\/object\/public\/site-media\//,'')
       .replace(/^\/+/, '');
+
     return `${C.SUPABASE_URL}/storage/v1/object/public/${C.STORAGE_BUCKET}/${clean}`;
   }
   function imageFallback(img,label='Travel'){ img.onerror=null; img.src=svgPlaceholder(label).trim(); }
