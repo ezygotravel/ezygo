@@ -17,6 +17,18 @@ function setLoginLoading(loading){
   if(btn){ btn.disabled=loading; btn.textContent=loading?'Checking…':'Continue'; }
   if(input) input.disabled=loading;
 }
+function openAdminView(){
+  const loginView=$('#loginView'), adminView=$('#adminView');
+  if(loginView){ loginView.hidden=true; loginView.style.display='none'; }
+  if(adminView){ adminView.hidden=false; adminView.style.display='block'; }
+  setLoginStatus('');
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+function openLoginView(){
+  const loginView=$('#loginView'), adminView=$('#adminView');
+  if(adminView){ adminView.hidden=true; adminView.style.display='none'; }
+  if(loginView){ loginView.hidden=false; loginView.style.display='grid'; }
+}
 async function call(action,payload={}){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(), 12000);
@@ -35,7 +47,7 @@ async function call(action,payload={}){
 async function fileData(file){if(!file)return null;const img=await new Promise((res,rej)=>{const i=new Image;i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)});let w=img.width,h=img.height,max=1600;if(Math.max(w,h)>max){const s=max/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);return c.toDataURL('image/jpeg',.84)}
 async function upload(file,folder){if(!file)return'';const dataUrl=await fileData(file);return (await call('upload',{folder,name:file.name,dataUrl})).path}
 async function uploadMany(files,folder){const out=[];for(const f of files)out.push(await upload(f,folder));return out}
-async function showAdmin(){ $('#loginView').hidden=true; $('#adminView').hidden=false; await refresh(); }
+async function showAdmin(){ await refresh(); openAdminView(); }
 async function login(){
   const entered=$('#loginId').value.trim();
   if(!entered){ setLoginStatus('Please enter the Admin Login ID.','error'); return; }
@@ -45,8 +57,7 @@ async function login(){
     await call('login');
     await refresh();
     sessionStorage.setItem('ezygo_admin_id',adminId);
-    $('#loginView').hidden=true; $('#adminView').hidden=false;
-    setLoginStatus('Connected successfully.','success');
+    openAdminView();
   }catch(e){
     sessionStorage.removeItem('ezygo_admin_id');
     adminId='';
@@ -56,7 +67,7 @@ async function login(){
 async function tryAutoLogin(){
   if(!adminId) return;
   try{ await showAdmin(); }
-  catch(e){ sessionStorage.removeItem('ezygo_admin_id'); adminId=''; $('#loginView').hidden=false; $('#adminView').hidden=true; setLoginStatus('Please log in again. '+(e.message||''),'error'); }
+  catch(e){ sessionStorage.removeItem('ezygo_admin_id'); adminId=''; openLoginView(); setLoginStatus('Please log in again. '+(e.message||''),'error'); }
 }
 async function refresh(){const j=await call('list');data=j.data;renderAll()}
 function renderAll(){renderGroups();renderVisas();renderPackages();renderGallery();renderFeedback()}
