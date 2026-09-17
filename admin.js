@@ -21,7 +21,7 @@ async function call(action,payload={}){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(), 12000);
   try{
-    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,adminId,...payload}),signal:controller.signal});
+    const r=await fetch(endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,adminId,...payload}),signal:controller.signal});
     const text=await r.text();
     let j={};
     try{ j=text?JSON.parse(text):{}; }catch{ j={ error:text || 'Unexpected server response' }; }

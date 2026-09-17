@@ -28,10 +28,20 @@ export async function onRequest(context) {
   if (request.method === 'GET') return json({ ok: true, status: 'EzyGo admin API is running' });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const url = env.SUPABASE_URL;
-  const service = env.SUPABASE_SERVICE_ROLE_KEY;
-  const expected = env.ADMIN_LOGIN_ID;
-  if (!url || !service || !expected) return json({ error: 'Server environment is not configured' }, 500);
+  const url = String(env.SUPABASE_URL || '').trim().replace(/\\/$/, '');
+  // Accept the existing Cloudflare variable name, the newer name, and the
+  // accidentally-shortened name visible in some setups.
+  const service = String(
+    env.SUPABASE_SERVICE_ROLE_KEY ||
+    env.SUPABASE_SECRET_KEY ||
+    env.SUPABASE_SERVICE_ROLE_K ||
+    ''
+  ).trim();
+  const expected = String(env.ADMIN_LOGIN_ID || '').trim();
+
+  if (!url) return json({ error: 'Missing Cloudflare variable: SUPABASE_URL' }, 500);
+  if (!service) return json({ error: 'Missing Cloudflare Supabase secret variable' }, 500);
+  if (!expected) return json({ error: 'Missing Cloudflare variable: ADMIN_LOGIN_ID' }, 500);
 
   let body;
   try {
@@ -40,15 +50,22 @@ export async function onRequest(context) {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  if (!body.adminId || body.adminId !== expected) {
+  const suppliedAdminId = String(body.adminId || '').trim();
+  if (!suppliedAdminId || suppliedAdminId !== expected) {
     return json({ error: 'Invalid Admin Login ID' }, 401);
   }
 
+  // IMPORTANT: sb_secret_* keys are opaque API keys, not JWTs.
+  // Sending them as Authorization: Bearer causes Supabase to reject the
+  // request with Invalid JWT. New secret keys must be sent in `apikey`.
+  // Legacy service_role JWT keys still support the Bearer header, so keep
+  // that header only for legacy JWT-shaped keys.
   const headers = {
     apikey: service,
-    Authorization: `Bearer ${service}`,
     'Content-Type': 'application/json'
   };
+  const isLegacyJwt = service.startsWith('eyJ') || service.split('.').length === 3;
+  if (isLegacyJwt) headers.Authorization = `Bearer ${service}`;
 
   const req = async (path, options = {}) => {
     const response = await fetch(`${url}${path}`, {
@@ -59,7 +76,9 @@ export async function onRequest(context) {
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     if (!response.ok) {
-      const message = typeof data === 'object' && data?.message ? data.message : (text || `HTTP ${response.status}`);
+      const message = (data && typeof data === 'object' && (data.message || data.error || data.msg))
+        ? (data.message || data.error || data.msg)
+        : (text || `Supabase HTTP ${response.status}`);
       throw new Error(message);
     }
     return data;
