@@ -1,4 +1,4 @@
-const CACHE='ezygo-v8';
+const CACHE='ezygo-v5';
 const CORE=['/','/index.html','/config.js','/app.js','/manifest.webmanifest','/favicon.ico','/icon-192.png','/icon-512.png','/logo.png'];
 
 self.addEventListener('install',e=>{
