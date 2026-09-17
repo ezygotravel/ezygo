@@ -8,8 +8,6 @@
 <meta name="description" content="Travel packages, visa support, ticket booking and trip assistance from EzyGo Travels.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -310,15 +308,11 @@ footer{padding:68px 20px 34px}
   .navbtn.active:after{left:6px;right:6px;}
 }
 
-.splashScreen{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .32s ease,visibility .32s ease}
-.splashScreen.hidden{opacity:0;visibility:hidden;pointer-events:none}
-.splashScreen img{width:min(42vw,165px);height:auto;display:block}
+
 
 </style>
 </head>
 <body>
-<div class="splashScreen" id="splashScreen" aria-hidden="true"><img src="/splash-logo.png" alt="EzyGo Travels"></div>
-
 <div class="page" id="top">
 <header class="top">
   <div class="toprow">
@@ -416,22 +410,10 @@ footer{padding:68px 20px 34px}
 </style>
 
 <script>
-(function(){
-  function hideSplash(){
-    var el=document.getElementById('splashScreen');
-    if(!el) return;
-    setTimeout(function(){ el.classList.add('hidden'); }, 520);
-  }
-  if(document.readyState === 'complete'){ hideSplash(); }
-  else { window.addEventListener('load', hideSplash, {once:true}); }
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('/service-worker.js').catch(function(){});
-    }, {once:true});
-  }
-})();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}),{once:true});
+}
 </script>
-
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body></html>
