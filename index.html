@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff">
 <title>EzyGo Travels</title>
 <meta name="description" content="Travel packages, visa support, ticket booking and trip assistance from EzyGo Travels.">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
@@ -309,9 +309,16 @@ footer{padding:68px 20px 34px}
   .navbtn svg{width:14px;height:14px;flex:none;}
   .navbtn.active:after{left:6px;right:6px;}
 }
+
+.splashScreen{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .32s ease,visibility .32s ease}
+.splashScreen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.splashScreen img{width:min(72vw,280px);height:auto;display:block}
+
 </style>
 </head>
 <body>
+<div class="splashScreen" id="splashScreen" aria-hidden="true"><img src="/splash-logo.png" alt="EzyGo Travels"></div>
+
 <div class="page" id="top">
 <header class="top">
   <div class="toprow">
@@ -407,6 +414,24 @@ footer{padding:68px 20px 34px}
 <style>
 .dbStatus{display:none;margin:12px auto 0;max-width:1180px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;font-size:12px;color:#74787e;background:#fff}.dbStatus.show{display:block}.feedbackSuccess{font-size:12px;color:#3f6f52;margin-top:10px}.cardmeta .metagrid>div{min-width:0}.below .line2{overflow-wrap:anywhere}
 </style>
+
+<script>
+(function(){
+  function hideSplash(){
+    var el=document.getElementById('splashScreen');
+    if(!el) return;
+    setTimeout(function(){ el.classList.add('hidden'); }, 650);
+  }
+  if(document.readyState === 'complete'){ hideSplash(); }
+  else { window.addEventListener('load', hideSplash, {once:true}); }
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+    }, {once:true});
+  }
+})();
+</script>
+
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body></html>
