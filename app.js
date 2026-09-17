@@ -35,11 +35,19 @@
         rest('galleries','select=*&active=eq.true&order=sort_order.asc')
       ]);
       groups=g; cards=c; packages=p; galleries=ga;
-      renderCards(); renderPackages(); renderGalleries(); buildTypeChips();
+      renderCards(); renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
     } catch (err) {
       console.error(err);
       const grid=$('#cardGrid'); if(grid) grid.innerHTML='<div class="empty">Content is being prepared. Please check again shortly.</div>';
     }
+  }
+  function syncContentNavigation() {
+    const packageTab=document.querySelector('.navbtn[data-tab="packages"]');
+    const galleryTab=document.querySelector('.navbtn[data-tab="gallery"]');
+    if(packageTab) packageTab.hidden=packages.length===0;
+    if(galleryTab) galleryTab.hidden=galleries.length===0;
+    const filterBtn=$('#filterBtn');
+    if(filterBtn) filterBtn.style.visibility=cards.length?'visible':'hidden';
   }
   function cardMarkup(c) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
@@ -53,14 +61,14 @@
     const groupOrder = groups.length ? groups : [...new Set(cards.map(c=>c.group_name))].map((name,i)=>({name,sort_order:i}));
     let html='';
     for(const g of groupOrder){ const items=list.filter(c=>c.group_name===g.name); if(!items.length) continue; html += `<div class="visaGroup">${esc(g.name)}</div>${items.map(cardMarkup).join('')}`; }
-    if(!html) html='<div class="empty">No matching visa option found.</div>';
+    if(!html) html='<div class="empty">Visa options will appear here soon.</div>';
     $('#cardGrid').innerHTML=html;
   }
   function renderPackages(){
-    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span><strong>${esc(p.price||'Ask for price')}</strong></div></div></article>`).join('') || '<div class="empty">No packages available right now.</div>';
+    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span><strong>${esc(p.price||'Ask for price')}</strong></div></div></article>`).join('') || '<div class="empty">No packages available.</div>';
   }
   function renderGalleries(){
-    $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items yet.</div>';
+    $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items available.</div>';
   }
   function arr(v){ return Array.isArray(v)?v:[]; }
   function openCardDetail(id,push=true){
