@@ -16,6 +16,8 @@
   }
   function mediaUrl(path, label='Travel') {
     if (!path) return svgPlaceholder(label).trim();
+    if (String(path).startsWith('local:')) return String(path).slice(6);
+    if (String(path).startsWith('/assets/')) return String(path);
     if (/^data:image\//i.test(path)) return path;
     if (/^https:\/\/eqtitceuapjuwockosnm\.supabase\.co\/storage\/v1\/object\/public\/site-media\//i.test(path)) return path;
     if (/^https?:\/\//i.test(path)) return svgPlaceholder(label).trim();
@@ -51,7 +53,7 @@
   }
   function cardMarkup(c) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
-    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="lazy" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)} · ${esc(c.fee||'Contact us')}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div><div class="fee">${esc(c.fee==='Contact us'?'Fee: Contact us':'Fees: '+(c.fee||'Contact us'))}</div></div></article>`;
+    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="lazy" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
   }
   function renderCards() {
     const q=($('#search')?.value||'').trim().toLowerCase();
@@ -65,7 +67,7 @@
     $('#cardGrid').innerHTML=html;
   }
   function renderPackages(){
-    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span><strong>${esc(p.price||'Ask for price')}</strong></div></div></article>`).join('') || '<div class="empty">No packages available.</div>';
+    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></article>`).join('') || '<div class="empty">No packages available.</div>';
   }
   function renderGalleries(){
     $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items available.</div>';
@@ -77,7 +79,7 @@
     $('#packageTrack').innerHTML=(imgs.length?imgs:['']).map((src,i)=>`<div class="detailSlide"><img src="${mediaUrl(src,`${c.country} ${i+1}`)}" alt="${esc(c.country)} image ${i+1}"></div>`).join('');
     $('#packageDots').innerHTML=(imgs.length?imgs:['']).map((_,i)=>`<i class="detailDot ${i===0?'active':''}"></i>`).join('');
     $('#packageFlag').textContent=c.flag||'✈️'; $('#packageType').textContent=c.type||'Visa'; $('#packageTitle').textContent=c.country||''; $('#packageDesc').textContent=c.description||'';
-    $('#packageDays').textContent=c.validity||(Number(c.days)?`${c.days} Days`:'Check details'); $('#packageFee').textContent=c.fee||'Contact us'; $('#packageDate').textContent=c.deadline||'Please confirm';
+    $('#packageDays').textContent=c.validity||(Number(c.days)?`${c.days} Days`:'Check details'); $('#packageFee').textContent=c.fee||''; $('#packageFee').closest('.fact').style.display=c.fee?'block':'none'; $('#packageDate').textContent=c.deadline||'Please confirm';
     $('#packageDocs').innerHTML=arr(c.documents).map(d=>`<div class="docItem"><span class="docTick">✓</span><span>${esc(d)}</span></div>`).join('');
     showOnly('cardDetail'); if(push) history.pushState({view:'cardDetail',id:c.id},'','#visa-'+c.id);
   }
@@ -86,7 +88,7 @@
     const imgs=[p.cover_path,...arr(p.image_paths)].filter(Boolean);
     $('#tourTrack').innerHTML=(imgs.length?imgs:['']).map((src,i)=>`<div class="tourSlide"><img src="${mediaUrl(src,`${p.title} ${i+1}`)}" alt="${esc(p.title)}"></div>`).join('');
     $('#tourDots').innerHTML=(imgs.length?imgs:['']).map((_,i)=>`<i class="tourDot ${i===0?'active':''}"></i>`).join('');
-    $('#tourTag').textContent=p.tag||'Travel package'; $('#tourTitle').textContent=p.title||''; $('#tourDestination').textContent=p.destination||''; $('#tourSummary').textContent=p.summary||''; $('#tourDuration').textContent=p.duration||''; $('#tourPrice').textContent=p.price||'Ask for price';
+    $('#tourTag').textContent=p.tag||'Travel package'; $('#tourTitle').textContent=p.title||''; $('#tourDestination').textContent=p.destination||''; $('#tourSummary').textContent=p.summary||''; $('#tourDuration').textContent=p.duration||''; $('#tourPrice').textContent=p.price||''; $('#tourPrice').closest('.tourFact').style.display=p.price?'block':'none';
     $('#tourHighlights').innerHTML=arr(p.highlights).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join('');
     $('#tourItinerary').innerHTML=arr(p.itinerary).map((x,i)=>`<div class="day"><div class="dayTop"><strong>Day ${esc(x.day||i+1)} · ${esc(x.title||'')}</strong>${x.meal?`<span class="meal">${esc(x.meal)}</span>`:''}</div><p>${esc(x.text||x.description||'')}</p></div>`).join('');
     $('#tourInclusions').innerHTML=arr(p.inclusions).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join(''); $('#tourExclusions').innerHTML=arr(p.exclusions).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join(''); $('#tourTerms').innerHTML=arr(p.terms).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join('');
