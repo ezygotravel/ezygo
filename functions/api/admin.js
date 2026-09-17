@@ -28,7 +28,7 @@ export async function onRequest(context) {
   if (request.method === 'GET') return json({ ok: true, status: 'EzyGo admin API is running' });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const url = String(env.SUPABASE_URL || '').trim().replace(/\\/$/, '');
+  const url = String(env.SUPABASE_URL || '').trim().replace(/\/$/, '');
   // Accept the existing Cloudflare variable name, the newer name, and the
   // accidentally-shortened name visible in some setups.
   const service = String(
