@@ -84,6 +84,58 @@ export async function onRequest(context) {
     return data;
   };
 
+
+  const normalizeStoragePath = (value) => {
+    const marker = '/storage/v1/object/public/site-media/';
+    let raw = String(value || '').trim();
+    if (!raw || raw.startsWith('local:') || raw.startsWith('/assets/')) return '';
+    if (/^https?:\/\//i.test(raw)) {
+      if (!raw.startsWith(url)) return '';
+      const at = raw.indexOf(marker);
+      if (at < 0) return '';
+      raw = raw.slice(at + marker.length);
+    }
+    raw = raw
+      .replace(/^site-media\//, '')
+      .replace(/^storage\/v1\/object\/public\/site-media\//, '')
+      .replace(/^\/+/, '');
+    return raw;
+  };
+
+  const deleteStoragePaths = async (values) => {
+    const paths = [...new Set((values || []).map(normalizeStoragePath).filter(Boolean))];
+    if (!paths.length) return { removed: 0, failed: [] };
+
+    const storageHeaders = { apikey: service };
+    if (isLegacyJwt) storageHeaders.Authorization = `Bearer ${service}`;
+
+    let removed = 0;
+    const failed = [];
+
+    for (const path of paths) {
+      const safePath = path.split('/').map(encodeURIComponent).join('/');
+      let ok = false;
+      let lastStatus = 0;
+
+      // A couple of retries keeps transient storage/network failures
+      // from leaving orphan media behind.
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        if (attempt) await new Promise(resolve => setTimeout(resolve, 180 * attempt));
+        const response = await fetch(`${url}/storage/v1/object/site-media/${safePath}`, {
+          method: 'DELETE',
+          headers: storageHeaders
+        });
+        lastStatus = response.status;
+        ok = response.ok || response.status === 404;
+      }
+
+      if (ok) removed++;
+      else failed.push({ path, status: lastStatus });
+    }
+
+    return { removed, failed };
+  };
+
   try {
     if (body.action === 'login') {
       await req('/rest/v1/visa_groups?select=id&limit=1');
@@ -121,6 +173,33 @@ export async function onRequest(context) {
       const table = body.table;
       if (!safeTables.has(table)) return json({ error: 'Invalid table' }, 400);
       if (!body.id) return json({ error: 'Missing id' }, 400);
+
+      // When an entire visa/package/gallery item is deleted, remove its
+      // Supabase Storage files first so no orphan media is left behind.
+      if (['visa_cards', 'packages', 'galleries'].includes(table)) {
+        const fields = table === 'visa_cards'
+          ? 'cover_path,detail_paths'
+          : 'cover_path,image_paths';
+
+        const rows = await req(
+          `/rest/v1/${table}?id=eq.${encodeURIComponent(body.id)}&select=${fields}&limit=1`
+        );
+        const row = rows?.[0];
+        if (row) {
+          const media = table === 'visa_cards'
+            ? [row.cover_path, ...(Array.isArray(row.detail_paths) ? row.detail_paths : [])]
+            : [row.cover_path, ...(Array.isArray(row.image_paths) ? row.image_paths : [])];
+
+          const cleanup = await deleteStoragePaths(media);
+          if (cleanup.failed.length) {
+            return json({
+              error: `Could not remove ${cleanup.failed.length} Supabase image(s). Item was not deleted. Please retry.`,
+              failed: cleanup.failed
+            }, 502);
+          }
+        }
+      }
+
       await req(`/rest/v1/${table}?id=eq.${encodeURIComponent(body.id)}`, {
         method: 'DELETE',
         headers: { Prefer: 'return=minimal' }
@@ -171,30 +250,18 @@ export async function onRequest(context) {
 
 
     if (body.action === 'delete_media') {
-      const input = Array.isArray(body.paths) ? body.paths.slice(0, 60) : [];
-      const marker = '/storage/v1/object/public/site-media/';
-      const cleaned = input.map(value => {
-        let raw = String(value || '').trim();
-        if (!raw || raw.startsWith('local:') || raw.startsWith('/assets/')) return '';
-        if (/^https?:\/\//i.test(raw)) {
-          if (!raw.startsWith(url)) return '';
-          const at = raw.indexOf(marker);
-          if (at < 0) return '';
-          raw = raw.slice(at + marker.length);
-        }
-        raw = raw.replace(/^site-media\//, '').replace(/^storage\/v1\/object\/public\/site-media\//, '').replace(/^\/+/, '');
-        return raw;
-      }).filter(Boolean);
+      const input = Array.isArray(body.paths) ? body.paths.slice(0, 100) : [];
+      const cleanup = await deleteStoragePaths(input);
 
-      const storageHeaders = { apikey: service };
-      if (isLegacyJwt) storageHeaders.Authorization = `Bearer ${service}`;
-      let removed = 0;
-      for (const path of [...new Set(cleaned)]) {
-        const safePath = path.split('/').map(encodeURIComponent).join('/');
-        const response = await fetch(`${url}/storage/v1/object/site-media/${safePath}`, { method: 'DELETE', headers: storageHeaders });
-        if (response.ok || response.status === 404) removed++;
+      if (cleanup.failed.length) {
+        return json({
+          error: `Supabase Storage cleanup failed for ${cleanup.failed.length} image(s).`,
+          removed: cleanup.removed,
+          failed: cleanup.failed
+        }, 502);
       }
-      return json({ ok: true, removed });
+
+      return json({ ok: true, removed: cleanup.removed, failed: [] });
     }
 
     if (body.action === 'upload') {
