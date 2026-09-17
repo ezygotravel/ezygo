@@ -8,6 +8,9 @@
   let cards = [], groups = [], packages = [], galleries = [];
   let currentCard = null, currentTour = null, currentGallery = null, currentImageIndex = 0;
   let currentTourImageIndex = 0, currentTourImages = [];
+  let currentVisaImageIndex = 0, currentVisaImages = [];
+  let currentView = 'explorePane';
+  let isLoadingCards = true;
   let activeType = '', activeDays = '';
 
   function esc(v='') { return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -39,6 +42,27 @@
     return `${C.SUPABASE_URL}/storage/v1/object/public/${C.STORAGE_BUCKET}/${clean}`;
   }
   function imageFallback(img,label='Travel'){ img.onerror=null; img.src=svgPlaceholder(label).trim(); }
+  function conciseAvailability(value=''){
+    const t=String(value||'').trim();
+    if(!t) return 'Check now';
+    if(t.length<=22) return t;
+    if(/available\s*now/i.test(t)) return 'Available now';
+    if(/available/i.test(t) && t.length<=30) return 'Available';
+    if(/contact|confirm|processing|current/i.test(t)) return 'Check now';
+    return 'Check now';
+  }
+  function loadingCards(count=8){
+    return Array.from({length:count},()=>`
+      <article class="skeletonCard" aria-hidden="true">
+        <div class="skeletonPoster skeletonGlow"></div>
+        <div class="skeletonLine skeletonGlow"></div>
+        <div class="skeletonLine short skeletonGlow"></div>
+      </article>`).join('');
+  }
+  function showCardLoading(){
+    const grid=$('#cardGrid');
+    if(grid) grid.innerHTML=loadingCards(window.innerWidth>=900?10:6);
+  }
   async function rest(table, query='') {
     const r = await fetch(`${C.SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: apiHeaders });
     if (!r.ok) throw new Error(`${table}: ${r.status}`);
@@ -53,10 +77,12 @@
         rest('galleries','select=*&active=eq.true&order=sort_order.asc')
       ]);
       groups=g; cards=c; packages=p; galleries=ga;
-      renderCards(); renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
+      isLoadingCards=false;
+      if(cards.length) renderCards(); else showCardLoading();
+      renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
     } catch (err) {
       console.error(err);
-      const grid=$('#cardGrid'); if(grid) grid.innerHTML='<div class="empty">Content is being prepared. Please check again shortly.</div>';
+      isLoadingCards=true; showCardLoading();
     }
   }
   function syncContentNavigation() {
@@ -79,7 +105,10 @@
     const groupOrder = groups.length ? groups : [...new Set(cards.map(c=>c.group_name))].map((name,i)=>({name,sort_order:i}));
     let html='';
     for(const g of groupOrder){ const items=list.filter(c=>c.group_name===g.name); if(!items.length) continue; html += `<div class="visaGroup">${esc(cleanGroupName(g.name))}</div>${items.map(cardMarkup).join('')}`; }
-    if(!html) html='<div class="empty">Visa options will appear here soon.</div>';
+    if(!html){
+      if(isLoadingCards || !cards.length){ showCardLoading(); return; }
+      html='<div class="empty">No matching visa options.</div>';
+    }
     $('#cardGrid').innerHTML=html;
   }
   function renderPackages(){
@@ -89,15 +118,73 @@
     $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items available.</div>';
   }
   function arr(v){ return Array.isArray(v)?v:[]; }
+  function setVisaSlide(index, animate=true){
+    const track=$('#packageTrack');
+    if(!track) return;
+    const total=currentVisaImages.length || 1;
+    currentVisaImageIndex=Math.max(0,Math.min(total-1,index));
+    track.style.transition=animate?'transform .30s cubic-bezier(.22,.61,.36,1)':'none';
+    track.style.transform=`translate3d(${-currentVisaImageIndex*100}%,0,0)`;
+    $$('#packageDots [data-visa-dot]').forEach((dot,i)=>{
+      dot.classList.toggle('active',i===currentVisaImageIndex);
+      dot.setAttribute('aria-current',i===currentVisaImageIndex?'true':'false');
+    });
+  }
+  function bindVisaSlider(){
+    const track=$('#packageTrack');
+    const dots=$('#packageDots');
+    if(!track || track.dataset.sliderBound==='1') return;
+    track.dataset.sliderBound='1';
+
+    let startX=0,startY=0,active=false;
+    track.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse' && e.button!==0) return;
+      active=true; startX=e.clientX; startY=e.clientY;
+      try{track.setPointerCapture(e.pointerId)}catch(_){}
+    });
+    track.addEventListener('pointerup',e=>{
+      if(!active) return;
+      active=false;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(Math.abs(dx)>38 && Math.abs(dx)>Math.abs(dy)){
+        setVisaSlide(currentVisaImageIndex+(dx<0?1:-1));
+      }else{
+        setVisaSlide(currentVisaImageIndex);
+      }
+    });
+    track.addEventListener('pointercancel',()=>{active=false;setVisaSlide(currentVisaImageIndex)});
+    track.addEventListener('dragstart',e=>e.preventDefault());
+    dots.addEventListener('click',e=>{
+      const dot=e.target.closest('[data-visa-dot]');
+      if(dot) setVisaSlide(Number(dot.dataset.visaDot));
+    });
+  }
+
   function openCardDetail(id,push=true){
     const c=cards.find(x=>String(x.id)===String(id)); if(!c)return; currentCard=c;
-    const imgs=[c.cover_path,...arr(c.detail_paths)].filter(Boolean);
-    $('#packageTrack').innerHTML=(imgs.length?imgs:['']).map((src,i)=>`<div class="detailSlide"><img src="${mediaUrl(src,`${c.country} ${i+1}`)}" alt="${esc(c.country)} image ${i+1}"></div>`).join('');
-    $('#packageDots').innerHTML=(imgs.length?imgs:['']).map((_,i)=>`<i class="detailDot ${i===0?'active':''}"></i>`).join('');
-    $('#packageFlag').textContent=c.flag||'✈️'; $('#packageType').textContent=c.type||'Visa'; $('#packageTitle').textContent=c.country||''; $('#packageDesc').textContent=c.description||'';
-    $('#packageDays').textContent=c.validity||(Number(c.days)?`${c.days} Days`:'Check details'); $('#packageFee').textContent=c.fee||''; $('#packageFee').closest('.fact').style.display=c.fee?'block':'none'; $('#packageDate').textContent=c.deadline||'Please confirm';
+    currentVisaImages=[c.cover_path,...arr(c.detail_paths)].filter(Boolean);
+    const sliderItems=currentVisaImages.length?currentVisaImages:[''];
+
+    $('#packageTrack').innerHTML=sliderItems.map((src,i)=>`
+      <div class="detailSlide">
+        <img src="${mediaUrl(src,`${c.country} ${i+1}`)}" alt="${esc(c.country)} image ${i+1}" draggable="false">
+      </div>`).join('');
+    $('#packageDots').innerHTML=sliderItems.length>1
+      ? sliderItems.map((_,i)=>`<button type="button" class="detailDot ${i===0?'active':''}" data-visa-dot="${i}" aria-label="Show image ${i+1}" aria-current="${i===0?'true':'false'}"></button>`).join('')
+      : '';
+
+    $('#packageFlag').textContent=c.flag||'✈️';
+    $('#packageType').textContent=c.type||'Visa';
+    $('#packageTitle').textContent=c.country||'';
+    $('#packageDesc').textContent=c.description||'';
+    $('#packageDays').textContent=c.validity||(Number(c.days)?`${c.days} Days`:'Check details');
+    $('#packageDate').textContent=conciseAvailability(c.deadline);
     $('#packageDocs').innerHTML=arr(c.documents).map(d=>`<div class="docItem"><span class="docTick">✓</span><span>${esc(d)}</span></div>`).join('');
-    showOnly('cardDetail'); if(push) history.pushState({view:'cardDetail',id:c.id},'','#visa-'+c.id);
+
+    showOnly('cardDetail');
+    bindVisaSlider();
+    setVisaSlide(0,false);
+    if(push) history.pushState({view:'cardDetail',id:c.id},'','#visa-'+c.id);
   }
 
   function setTourSlide(index, animate=true){
@@ -190,10 +277,43 @@
     const imgs=arr(g.image_paths); $('#photoGrid').innerHTML=imgs.map((src,i)=>`<button class="photo" data-photo="${i}"><img loading="lazy" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)} image ${i+1}"></button>`).join('') || '<div class="empty">No photos uploaded yet.</div>';
     showOnly('galleryDetail'); if(push) history.pushState({view:'galleryDetail',id:g.id},'','#gallery-'+g.id);
   }
-  function showOnly(view){
-    const ids=['explorePane','packagesPane','servicesPane','galleryPane','tourDetail','cardDetail','galleryDetail']; ids.forEach(id=>{const el=$('#'+id); if(el) el.style.display=id===view?'block':'none'}); $('#tools').style.display=view==='explorePane'?'grid':'none'; $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===({explorePane:'explore',packagesPane:'packages',servicesPane:'services',galleryPane:'gallery'}[view]||''))); window.scrollTo({top:0,behavior:'smooth'});
+  function updateBackButton(){
+    const btn=$('#backBtn');
+    if(!btn) return;
+    const shouldShow=currentView!=='explorePane' || window.scrollY>80;
+    btn.classList.toggle('is-hidden',!shouldShow);
   }
-  function showTab(tab,push=true){ const map={explore:'explorePane',packages:'packagesPane',services:'servicesPane',gallery:'galleryPane'}; showOnly(map[tab]||'explorePane'); if(push) history.pushState({view:map[tab]||'explorePane'},'','#'+tab); }
+  function showOnly(view,scrollTop=true){
+    currentView=view;
+    const ids=['explorePane','packagesPane','servicesPane','galleryPane','tourDetail','cardDetail','galleryDetail'];
+    ids.forEach(id=>{
+      const el=$('#'+id);
+      if(el) el.style.display=id===view?'block':'none';
+    });
+    $('#tools').style.display=view==='explorePane'?'grid':'none';
+    $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===({
+      explorePane:'explore',packagesPane:'packages',servicesPane:'services',galleryPane:'gallery'
+    }[view]||'')));
+    if(scrollTop) window.scrollTo({top:0,behavior:'auto'});
+    requestAnimationFrame(updateBackButton);
+  }
+  function showTab(tab,push=true){
+    const map={explore:'explorePane',packages:'packagesPane',services:'servicesPane',gallery:'galleryPane'};
+    const view=map[tab]||'explorePane';
+    showOnly(view,true);
+    if(push) history.pushState({view},'','#'+tab);
+  }
+  function handleBack(){
+    if(window.scrollY>80){
+      window.scrollTo({top:0,behavior:'smooth'});
+      return;
+    }
+    if(currentView!=='explorePane'){
+      history.back();
+      return;
+    }
+    updateBackButton();
+  }
   function buildTypeChips(){ const types=[...new Set(cards.map(c=>c.type).filter(Boolean))]; $('#typeChips').innerHTML=types.map(t=>`<button class="chip" data-type="${esc(t)}">${esc(t)}</button>`).join(''); $$('[data-type]').forEach(b=>b.onclick=()=>{activeType=activeType===b.dataset.type?'':b.dataset.type; $$('[data-type]').forEach(x=>x.classList.toggle('active',x.dataset.type===activeType));}); }
   async function submitFeedback(e){
     e.preventDefault(); const name=$('#fbName').value.trim(), phone=$('#fbPhone').value.trim(), message=$('#fbMessage').value.trim(); if(!message)return;
@@ -205,11 +325,11 @@
   function updateCount(i){currentImageIndex=i;$('#lbCount').textContent=`${i+1} / ${arr(currentGallery?.image_paths).length}`}
   function closeLightbox(){$('#lightbox').classList.remove('open');document.body.style.overflow=''}
   document.addEventListener('DOMContentLoaded',()=>{
-    $('#year').textContent=new Date().getFullYear(); loadData();
+    $('#year').textContent=new Date().getFullYear(); showCardLoading(); loadData();
     $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openCardDetail(c.dataset.id)}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c)openTour(c.dataset.tour)}; $('#galleryGrid').onclick=e=>{const c=e.target.closest('[data-gallery]');if(c)openGallery(c.dataset.gallery)}; $('#photoGrid').onclick=e=>{const b=e.target.closest('[data-photo]');if(b&&currentGallery)openLightbox(currentGallery,Number(b.dataset.photo))};
-    $$('.navbtn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); $('#backBtn').onclick=()=>history.back(); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
-    $('#feedbackForm').onsubmit=submitFeedback; $('#contactBtn').onclick=()=>window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('Hi EzyGo Travels, I would like to make a travel enquiry.')}`,'_blank'); $('#packageEnquire').onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); $('#tourEnquire').onclick=()=>currentTour&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentTour.title}.`)}`,'_blank');
+    $$('.navbtn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); $('#backBtn').onclick=handleBack; window.addEventListener('scroll',updateBackButton,{passive:true}); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
+    $('#feedbackForm').onsubmit=submitFeedback; $('#contactBtn').onclick=()=>window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('Hi EzyGo Travels, I would like to make a travel enquiry.')}`,'_blank'); $('#packageEnquire').onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); const packageContactFact=$('#packageContactFact'); if(packageContactFact) packageContactFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); $('#tourEnquire').onclick=()=>currentTour&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentTour.title}.`)}`,'_blank');
     $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open')); $('#lbClose').onclick=closeLightbox; $('#lbPrev').onclick=()=>{if(!currentGallery)return;const n=Math.max(0,currentImageIndex-1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)}; $('#lbNext').onclick=()=>{if(!currentGallery)return;const n=Math.min(arr(currentGallery.image_paths).length-1,currentImageIndex+1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)};
-    window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else if(st?.view==='galleryDetail')openGallery(st.id,false); else showOnly(st?.view||'explorePane')}); history.replaceState({view:'explorePane'},'',location.pathname);
+    window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else if(st?.view==='galleryDetail')openGallery(st.id,false); else showOnly(st?.view||'explorePane',true)}); history.replaceState({view:'explorePane'},'',location.pathname); currentView='explorePane'; updateBackButton();
   });
 })();

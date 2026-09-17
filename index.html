@@ -382,6 +382,121 @@ footer{padding:68px 20px 34px}
 
 
 </style>
+
+<style>
+/* Requested navigation + readability refinements */
+.back{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  padding:0!important;
+}
+.back:active{transform:translateX(-1px)}
+.back.is-hidden{visibility:hidden!important;pointer-events:none!important}
+
+/* Minimal black gradient for text legibility on image cards */
+.poster:after{
+  background:linear-gradient(180deg,rgba(0,0,0,.03) 28%,rgba(0,0,0,.13) 57%,rgba(0,0,0,.66) 100%)!important;
+}
+.tourCardMedia:after{
+  background:linear-gradient(180deg,rgba(0,0,0,.025) 30%,rgba(0,0,0,.12) 58%,rgba(0,0,0,.62) 100%)!important;
+}
+.country,.cardmeta,.tourOverlay{ text-shadow:0 2px 9px rgba(0,0,0,.38) }
+
+/* Visa detail: true one-image slider */
+.detailSlider{position:relative;overflow:hidden}
+.detailTrack{
+  display:flex!important;
+  width:100%;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  touch-action:pan-y;
+  will-change:transform;
+  transform:translate3d(0,0,0);
+}
+.detailSlide{flex:0 0 100%!important;width:100%;scroll-snap-align:none!important}
+.detailSlide img{user-select:none;-webkit-user-drag:none}
+.detailDots{
+  pointer-events:auto!important;
+  align-items:center;
+  z-index:5;
+}
+.detailDot{
+  appearance:none;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  transition:width .2s ease,background .2s ease,opacity .2s ease;
+}
+.detailDot.active{width:18px}
+
+/* Compact blue visa facts */
+.packageFacts{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.fact.blueFact{
+  min-width:0;
+  border:1px solid #d9edf8!important;
+  background:#f5fbff!important;
+  color:#126f9d;
+  box-shadow:none;
+}
+.fact.blueFact small{color:#5ba8ce!important}
+.fact.blueFact strong{color:#126f9d!important;overflow-wrap:anywhere}
+.factAction{
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+}
+.factAction:active{transform:scale(.985)}
+
+/* Loading cards: never leave the visa area visually empty */
+.skeletonCard{min-width:0}
+.skeletonPoster{
+  width:100%;
+  aspect-ratio:.625;
+  border-radius:29px;
+  background:#eef1f4;
+}
+.skeletonLine{
+  height:11px;
+  width:72%;
+  margin:13px 3px 0;
+  border-radius:999px;
+  background:#eef1f4;
+}
+.skeletonLine.short{width:48%;margin-top:8px}
+.skeletonGlow{
+  position:relative;
+  overflow:hidden;
+}
+.skeletonGlow:after{
+  content:'';
+  position:absolute;
+  inset:0;
+  transform:translateX(-110%);
+  background:linear-gradient(100deg,transparent 12%,rgba(255,255,255,.94) 45%,transparent 78%);
+  animation:ezySkeletonGlow 1.25s ease-in-out infinite;
+}
+@keyframes ezySkeletonGlow{to{transform:translateX(110%)}}
+
+.legalRow a{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  text-decoration:none;
+  color:#777b81!important;
+}
+.legalRow a:hover{text-decoration:underline;text-underline-offset:3px}
+
+@media(max-width:480px){
+  .packageFacts{gap:7px!important}
+  .fact.blueFact{padding:10px 9px!important}
+  .fact.blueFact small{font-size:7.5px!important;letter-spacing:.08em!important}
+  .fact.blueFact strong{font-size:10.5px!important}
+  .skeletonPoster{border-radius:27px}
+}
+</style>
+
 </head>
 <body>
 <div class="page" id="top">
@@ -416,7 +531,7 @@ footer{padding:68px 20px 34px}
   </section>
   <section class="galleryPane" id="galleryPane"><div class="galleryGrid" id="galleryGrid"></div></section>
   <section class="tourDetailPane" id="tourDetail"><div class="tourDetailWrap"><div class="tourHero"><div class="tourTrack" id="tourTrack"></div><div class="tourDots" id="tourDots"></div></div><div class="tourHeader"><div class="tourKicker" id="tourTag"></div><h1 id="tourTitle"></h1><div class="tourDestination" id="tourDestination"></div><p class="tourHeaderDesc" id="tourSummary"></p><div class="tourFacts"><div class="tourFact"><small>Duration</small><strong id="tourDuration"></strong></div><div class="tourFact"><small>Package price</small><strong id="tourPrice"></strong></div></div></div><section class="tourBlock"><h2>Highlights</h2><div class="highlightChips" id="tourHighlights"></div></section><section class="tourBlock"><h2>Day-by-day itinerary</h2><div class="itinerary" id="tourItinerary"></div></section><section class="tourBlock"><div class="twoLists"><div><h2>Inclusions</h2><div class="cleanList" id="tourInclusions"></div></div><div><h2>Exclusions</h2><div class="cleanList" id="tourExclusions"></div></div></div></section><section class="tourBlock"><h2>Important notes</h2><div class="tourTerms" id="tourTerms"></div></section><button class="tourEnquire" id="tourEnquire">Enquire now</button><div class="tourSourceNote" id="tourSourceNote"></div></div></section>
-  <section class="cardDetail" id="cardDetail"><div class="packageDetail"><div class="detailSlider"><div class="detailTrack" id="packageTrack"></div><div class="detailDots" id="packageDots"></div></div><div class="packageTop"><div class="detailFlag" id="packageFlag"></div><div class="packageEyebrow" id="packageType"></div><h1 id="packageTitle"></h1><p id="packageDesc"></p><div class="packageFacts"><div class="fact"><small>Validity</small><strong id="packageDays"></strong></div><div class="fact"><small>Fee</small><strong id="packageFee"></strong></div><div class="fact"><small>Available</small><strong id="packageDate"></strong></div></div></div><div class="detailSection"><h2>Documents required</h2><div class="docList" id="packageDocs"></div></div><button class="enquire" id="packageEnquire">Enquire now</button></div></section>
+  <section class="cardDetail" id="cardDetail"><div class="packageDetail"><div class="detailSlider"><div class="detailTrack" id="packageTrack"></div><div class="detailDots" id="packageDots"></div></div><div class="packageTop"><div class="detailFlag" id="packageFlag"></div><div class="packageEyebrow" id="packageType"></div><h1 id="packageTitle"></h1><p id="packageDesc"></p><div class="packageFacts"><div class="fact blueFact"><small>Validity</small><strong id="packageDays"></strong></div><div class="fact blueFact"><small>Availability</small><strong id="packageDate"></strong></div><button type="button" class="fact blueFact factAction" id="packageContactFact"><small>Contact</small><strong>Contact now</strong></button></div></div><div class="detailSection"><h2>Documents required</h2><div class="docList" id="packageDocs"></div></div><button class="enquire" id="packageEnquire">Enquire now</button></div></section>
   <section class="galleryDetail" id="galleryDetail"><div class="detailHead"><h1 id="detailTitle"></h1><p id="detailDesc"></p></div><div class="photoGrid" id="photoGrid"></div></section>
 </main>
 <footer>
@@ -463,7 +578,7 @@ footer{padding:68px 20px 34px}
       <div class="acc"><button class="accBtn" type="button">Company <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">EzyGo Travels provides travel packages, visa assistance, ticket booking, certificate attestation and trip support.</div></div>
       <div class="acc"><button class="accBtn" type="button">Products <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">Tour packages · Visa support · Flight tickets · Train tickets · Bus tickets · Certificate attestation · Umrah services</div></div>
       <div class="acc"><button class="accBtn" type="button">Office <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">Ground Floor, Konnar Tower, Calicut Road, Edavannappara.<br>Phone: +91 96563 09061</div></div>
-      <div class="legalRow"><span>Developed by Quartz Web Solutions</span></div>
+      <div class="legalRow"><a href="https://quartzsolution.netlify.app" target="_blank" rel="noopener">Developed by Quartz Web Solutions</a></div>
       <div class="fixedCopyright">© <span id="year"></span> EzyGo Travels. All rights reserved.</div>
     </div>
   </div>
