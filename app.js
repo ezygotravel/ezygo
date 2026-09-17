@@ -7,22 +7,30 @@
   const apiHeaders = { apikey: C.SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${C.SUPABASE_PUBLISHABLE_KEY}` };
   let cards = [], groups = [], packages = [], galleries = [];
   let currentCard = null, currentTour = null, currentGallery = null, currentImageIndex = 0;
+  let currentTourImageIndex = 0, currentTourImages = [];
   let activeType = '', activeDays = '';
 
   function esc(v='') { return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function cleanGroupName(v=''){ return String(v).replace(/^[\s🌏🌍]+/u,'').trim(); }
   function svgPlaceholder(label='Travel') {
     const txt = esc(label).slice(0,28);
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eef1f4"/><stop offset="1" stop-color="#dfe4e9"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><circle cx="450" cy="470" r="88" fill="#fff" opacity=".8"/><path d="M382 470h136M450 402v136" stroke="#b5bdc6" stroke-width="14" stroke-linecap="round"/><text x="450" y="650" text-anchor="middle" font-family="Arial" font-size="34" fill="#7f8994">${txt}</text></svg>`)} `;
   }
   function mediaUrl(path, label='Travel') {
-    if (!path) return svgPlaceholder(label).trim();
-    if (String(path).startsWith('local:')) return String(path).slice(6);
-    if (String(path).startsWith('/assets/')) return String(path);
-    if (/^data:image\//i.test(path)) return path;
-    if (/^https:\/\/eqtitceuapjuwockosnm\.supabase\.co\/storage\/v1\/object\/public\/site-media\//i.test(path)) return path;
-    if (/^https?:\/\//i.test(path)) return svgPlaceholder(label).trim();
-    return `${C.SUPABASE_URL}/storage/v1/object/public/${C.STORAGE_BUCKET}/${String(path).replace(/^\/+/, '')}`;
+    const raw=String(path||'').trim();
+    if (!raw) return svgPlaceholder(label).trim();
+    if (/^data:image\//i.test(raw)) return raw;
+    if (/^https?:\/\//i.test(raw)) {
+      if (raw.startsWith(C.SUPABASE_URL)) return raw;
+      return svgPlaceholder(label).trim();
+    }
+    const clean=raw
+      .replace(/^site-media\//,'')
+      .replace(/^storage\/v1\/object\/public\/site-media\//,'')
+      .replace(/^\/+/, '');
+    return `${C.SUPABASE_URL}/storage/v1/object/public/${C.STORAGE_BUCKET}/${clean}`;
   }
+  function imageFallback(img,label='Travel'){ img.onerror=null; img.src=svgPlaceholder(label).trim(); }
   async function rest(table, query='') {
     const r = await fetch(`${C.SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: apiHeaders });
     if (!r.ok) throw new Error(`${table}: ${r.status}`);
@@ -53,7 +61,7 @@
   }
   function cardMarkup(c) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
-    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="lazy" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
+    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="lazy" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
   }
   function renderCards() {
     const q=($('#search')?.value||'').trim().toLowerCase();
@@ -62,12 +70,12 @@
     if(activeDays) { const n=Number(activeDays); list=list.filter(c=>n===0?Number(c.days||0)===0:Number(c.days||0)<=n); }
     const groupOrder = groups.length ? groups : [...new Set(cards.map(c=>c.group_name))].map((name,i)=>({name,sort_order:i}));
     let html='';
-    for(const g of groupOrder){ const items=list.filter(c=>c.group_name===g.name); if(!items.length) continue; html += `<div class="visaGroup">${esc(g.name)}</div>${items.map(cardMarkup).join('')}`; }
+    for(const g of groupOrder){ const items=list.filter(c=>c.group_name===g.name); if(!items.length) continue; html += `<div class="visaGroup">${esc(cleanGroupName(g.name))}</div>${items.map(cardMarkup).join('')}`; }
     if(!html) html='<div class="empty">Visa options will appear here soon.</div>';
     $('#cardGrid').innerHTML=html;
   }
   function renderPackages(){
-    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></article>`).join('') || '<div class="empty">No packages available.</div>';
+    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="lazy" src="${mediaUrl(p.cover_path,p.title)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></article>`).join('') || '<div class="empty">No packages available.</div>';
   }
   function renderGalleries(){
     $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items available.</div>';
@@ -83,16 +91,91 @@
     $('#packageDocs').innerHTML=arr(c.documents).map(d=>`<div class="docItem"><span class="docTick">✓</span><span>${esc(d)}</span></div>`).join('');
     showOnly('cardDetail'); if(push) history.pushState({view:'cardDetail',id:c.id},'','#visa-'+c.id);
   }
+
+  function setTourSlide(index, animate=true){
+    const track=$('#tourTrack');
+    if(!track) return;
+    const total=currentTourImages.length || 1;
+    currentTourImageIndex=Math.max(0,Math.min(total-1,index));
+    track.style.transition=animate?'transform .30s cubic-bezier(.22,.61,.36,1)':'none';
+    track.style.transform=`translate3d(${-currentTourImageIndex*100}%,0,0)`;
+    $$('#tourDots [data-tour-dot]').forEach((dot,i)=>{
+      dot.classList.toggle('active',i===currentTourImageIndex);
+      dot.setAttribute('aria-current',i===currentTourImageIndex?'true':'false');
+    });
+  }
+  function bindTourSlider(){
+    const track=$('#tourTrack');
+    const dots=$('#tourDots');
+    if(!track || track.dataset.sliderBound==='1') return;
+    track.dataset.sliderBound='1';
+
+    let startX=0, startY=0, active=false;
+    track.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse' && e.button!==0) return;
+      active=true; startX=e.clientX; startY=e.clientY;
+      try{ track.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    track.addEventListener('pointerup',e=>{
+      if(!active) return;
+      active=false;
+      const dx=e.clientX-startX, dy=e.clientY-startY;
+      if(Math.abs(dx)>38 && Math.abs(dx)>Math.abs(dy)){
+        setTourSlide(currentTourImageIndex+(dx<0?1:-1));
+      }else{
+        setTourSlide(currentTourImageIndex);
+      }
+    });
+    track.addEventListener('pointercancel',()=>{ active=false; setTourSlide(currentTourImageIndex); });
+    track.addEventListener('dragstart',e=>e.preventDefault());
+
+    dots.addEventListener('click',e=>{
+      const dot=e.target.closest('[data-tour-dot]');
+      if(dot) setTourSlide(Number(dot.dataset.tourDot));
+    });
+  }
+
   function openTour(id,push=true){
     const p=packages.find(x=>String(x.id)===String(id)); if(!p)return; currentTour=p;
-    const imgs=[p.cover_path,...arr(p.image_paths)].filter(Boolean);
-    $('#tourTrack').innerHTML=(imgs.length?imgs:['']).map((src,i)=>`<div class="tourSlide"><img src="${mediaUrl(src,`${p.title} ${i+1}`)}" alt="${esc(p.title)}"></div>`).join('');
-    $('#tourDots').innerHTML=(imgs.length?imgs:['']).map((_,i)=>`<i class="tourDot ${i===0?'active':''}"></i>`).join('');
-    $('#tourTag').textContent=p.tag||'Travel package'; $('#tourTitle').textContent=p.title||''; $('#tourDestination').textContent=p.destination||''; $('#tourSummary').textContent=p.summary||''; $('#tourDuration').textContent=p.duration||''; $('#tourPrice').textContent=p.price||''; $('#tourPrice').closest('.tourFact').style.display=p.price?'block':'none';
-    $('#tourHighlights').innerHTML=arr(p.highlights).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join('');
-    $('#tourItinerary').innerHTML=arr(p.itinerary).map((x,i)=>`<div class="day"><div class="dayTop"><strong>Day ${esc(x.day||i+1)} · ${esc(x.title||'')}</strong>${x.meal?`<span class="meal">${esc(x.meal)}</span>`:''}</div><p>${esc(x.text||x.description||'')}</p></div>`).join('');
-    $('#tourInclusions').innerHTML=arr(p.inclusions).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join(''); $('#tourExclusions').innerHTML=arr(p.exclusions).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join(''); $('#tourTerms').innerHTML=arr(p.terms).map(x=>`<div class="tourListItem">${esc(x)}</div>`).join('');
-    if($('#tourSourceNote')) $('#tourSourceNote').textContent=''; showOnly('tourDetail'); if(push) history.pushState({view:'tourDetail',id:p.id},'','#tour-'+p.id);
+    currentTourImages=[p.cover_path,...arr(p.image_paths)].filter(Boolean);
+    const sliderItems=currentTourImages.length?currentTourImages:[''];
+
+    $('#tourTrack').innerHTML=sliderItems.map((src,i)=>`<div class="tourSlide"><img src="${mediaUrl(src,`${p.title} ${i+1}`)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)} image ${i+1}" draggable="false"></div>`).join('');
+    $('#tourDots').innerHTML=sliderItems.length>1
+      ? sliderItems.map((_,i)=>`<button class="tourDot ${i===0?'active':''}" type="button" data-tour-dot="${i}" aria-label="Show image ${i+1}" aria-current="${i===0?'true':'false'}"></button>`).join('')
+      : '';
+
+    $('#tourTag').textContent=p.tag||'Travel package';
+    $('#tourTitle').textContent=p.title||'';
+    $('#tourDestination').textContent=p.destination||'';
+    $('#tourSummary').textContent=p.summary||'';
+    $('#tourDuration').textContent=p.duration||'Check details';
+    $('#tourPrice').textContent=p.price||'Ask for price';
+
+    $('#tourHighlights').innerHTML=arr(p.highlights).map(x=>`<span class="highlightChip">${esc(x)}</span>`).join('');
+
+    $('#tourItinerary').innerHTML=arr(p.itinerary).map((x,i)=>`
+      <article class="dayCard">
+        <div class="dayTop">
+          <div>
+            <div class="dayNo">DAY ${esc(x.day||i+1)}</div>
+            <h3>${esc(x.title||'Day plan')}</h3>
+          </div>
+          ${x.meal?`<span class="meal">${esc(x.meal)}</span>`:''}
+        </div>
+        <p>${esc(x.text||x.description||'')}</p>
+      </article>`).join('');
+
+    $('#tourInclusions').innerHTML=arr(p.inclusions).map(x=>`<div class="cleanItem"><span class="cleanIcon">✓</span><span>${esc(x)}</span></div>`).join('');
+    $('#tourExclusions').innerHTML=arr(p.exclusions).map(x=>`<div class="cleanItem"><span class="cleanIcon">✓</span><span>${esc(x)}</span></div>`).join('');
+    $('#tourTerms').innerHTML=arr(p.terms).map(x=>`<div class="tourTerm">${esc(x)}</div>`).join('');
+
+    if($('#tourSourceNote')) $('#tourSourceNote').textContent='';
+    showOnly('tourDetail');
+    bindTourSlider();
+    setTourSlide(0,false);
+
+    if(push) history.pushState({view:'tourDetail',id:p.id},'','#tour-'+p.id);
   }
   function openGallery(id,push=true){
     const g=galleries.find(x=>String(x.id)===String(id)); if(!g)return; currentGallery=g; $('#detailTitle').textContent=g.title||''; $('#detailDesc').textContent=g.description||'';

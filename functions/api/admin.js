@@ -145,6 +145,30 @@ export async function onRequest(context) {
       return json({ ok: true });
     }
 
+
+    if (body.action === 'set_media') {
+      const table = body.table;
+      if (!['visa_cards', 'packages', 'galleries'].includes(table)) {
+        return json({ error: 'Invalid media table' }, 400);
+      }
+      const id = String(body.id || '').trim();
+      if (!id) return json({ error: 'Missing id' }, 400);
+
+      const coverPath = String(body.coverPath || '').trim();
+      const imagePaths = Array.isArray(body.imagePaths) ? body.imagePaths.map(String) : [];
+      let patch;
+      if (table === 'visa_cards') patch = { cover_path: coverPath, detail_paths: imagePaths, updated_at: new Date().toISOString() };
+      else if (table === 'packages') patch = { cover_path: coverPath, image_paths: imagePaths, updated_at: new Date().toISOString() };
+      else patch = { cover_path: coverPath, image_paths: imagePaths, updated_at: new Date().toISOString() };
+
+      await req(`/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(patch)
+      });
+      return json({ ok: true });
+    }
+
     if (body.action === 'upload') {
       const match = String(body.dataUrl || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
       if (!match) return json({ error: 'Only JPEG, PNG or WebP images are allowed' }, 400);
