@@ -1,12 +1,63 @@
 (() => {
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)]; let adminId=sessionStorage.getItem('ezygo_admin_id')||'', data={visa_groups:[],visa_cards:[],packages:[],galleries:[],feedback:[]}; let edit={visa:null,package:null,gallery:null};
-const endpoint='/api/admin'; const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); const lines=id=>$(id).value.split('\n').map(x=>x.trim()).filter(Boolean); const mediaUrl=p=>!p?'':`${window.EZYGO_CONFIG.SUPABASE_URL}/storage/v1/object/public/${window.EZYGO_CONFIG.STORAGE_BUCKET}/${p}`;
-async function call(action,payload={}){const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,adminId,...payload})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Request failed');return j}
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let adminId=sessionStorage.getItem('ezygo_admin_id')||'';
+let data={visa_groups:[],visa_cards:[],packages:[],galleries:[],feedback:[]};
+let edit={visa:null,package:null,gallery:null};
+const endpoint='/api/admin';
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const lines=id=>$(id).value.split('\n').map(x=>x.trim()).filter(Boolean);
+const mediaUrl=p=>!p?'':`${window.EZYGO_CONFIG.SUPABASE_URL}/storage/v1/object/public/${window.EZYGO_CONFIG.STORAGE_BUCKET}/${p}`;
+
+function setLoginStatus(message='', type=''){
+  const el=$('#loginStatus'); if(!el) return;
+  el.textContent=message; el.className='status'+(type?` ${type}`:'');
+}
+function setLoginLoading(loading){
+  const btn=$('#loginBtn'), input=$('#loginId');
+  if(btn){ btn.disabled=loading; btn.textContent=loading?'Checking…':'Continue'; }
+  if(input) input.disabled=loading;
+}
+async function call(action,payload={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(), 12000);
+  try{
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,adminId,...payload}),signal:controller.signal});
+    const text=await r.text();
+    let j={};
+    try{ j=text?JSON.parse(text):{}; }catch{ j={ error:text || 'Unexpected server response' }; }
+    if(!r.ok) throw new Error(j.error||`Request failed (${r.status})`);
+    return j;
+  }catch(err){
+    if(err.name==='AbortError') throw new Error('Request timed out. Check Cloudflare deployment and secrets.');
+    throw err;
+  }finally{ clearTimeout(timer); }
+}
 async function fileData(file){if(!file)return null;const img=await new Promise((res,rej)=>{const i=new Image;i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)});let w=img.width,h=img.height,max=1600;if(Math.max(w,h)>max){const s=max/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);return c.toDataURL('image/jpeg',.84)}
 async function upload(file,folder){if(!file)return'';const dataUrl=await fileData(file);return (await call('upload',{folder,name:file.name,dataUrl})).path}
 async function uploadMany(files,folder){const out=[];for(const f of files)out.push(await upload(f,folder));return out}
-function showAdmin(){ $('#loginView').hidden=true; $('#adminView').hidden=false; refresh(); }
-async function login(){adminId=$('#loginId').value.trim();if(!adminId)return;$('#loginStatus').textContent='Checking…';try{await call('login');sessionStorage.setItem('ezygo_admin_id',adminId);showAdmin()}catch(e){$('#loginStatus').textContent='Invalid Admin Login ID';}}
+async function showAdmin(){ $('#loginView').hidden=true; $('#adminView').hidden=false; await refresh(); }
+async function login(){
+  const entered=$('#loginId').value.trim();
+  if(!entered){ setLoginStatus('Please enter the Admin Login ID.','error'); return; }
+  adminId=entered;
+  setLoginLoading(true); setLoginStatus('Checking…');
+  try{
+    await call('login');
+    await refresh();
+    sessionStorage.setItem('ezygo_admin_id',adminId);
+    $('#loginView').hidden=true; $('#adminView').hidden=false;
+    setLoginStatus('Connected successfully.','success');
+  }catch(e){
+    sessionStorage.removeItem('ezygo_admin_id');
+    adminId='';
+    setLoginStatus(e.message || 'Unable to log in.','error');
+  }finally{ setLoginLoading(false); }
+}
+async function tryAutoLogin(){
+  if(!adminId) return;
+  try{ await showAdmin(); }
+  catch(e){ sessionStorage.removeItem('ezygo_admin_id'); adminId=''; $('#loginView').hidden=false; $('#adminView').hidden=true; setLoginStatus('Please log in again. '+(e.message||''),'error'); }
+}
 async function refresh(){const j=await call('list');data=j.data;renderAll()}
 function renderAll(){renderGroups();renderVisas();renderPackages();renderGallery();renderFeedback()}
 function renderGroups(){const opts=data.visa_groups.map(g=>`<option>${esc(g.name)}</option>`).join('');$('#vGroup').innerHTML=opts;$('#groupList').innerHTML=data.visa_groups.map((g,i)=>`<div class="orderItem"><div><strong>${esc(g.name)}</strong> <span class="badge">${data.visa_cards.filter(v=>v.group_name===g.name).length} cards</span></div><div class="mini"><button class="btn ghost" data-gup="${g.id}" ${i===0?'disabled':''}>↑</button><button class="btn ghost" data-gdown="${g.id}" ${i===data.visa_groups.length-1?'disabled':''}>↓</button><button class="btn danger" data-gdel="${g.id}">Delete</button></div></div>`).join('')}
@@ -26,5 +77,7 @@ function editVisa(id){const v=data.visa_cards.find(x=>x.id===id);edit.visa=id;$(
 function editPackage(id){const p=data.packages.find(x=>x.id===id);edit.package=id;$('#packageFormTitle').textContent='Edit package';$('#pTitle').value=p.title||'';$('#pTag').value=p.tag||'';$('#pDestination').value=p.destination||'';$('#pDuration').value=p.duration||'';$('#pPrice').value=p.price||'';$('#pSummary').value=p.summary||'';$('#pHighlights').value=(p.highlights||[]).join('\n');$('#pItinerary').value=(p.itinerary||[]).map(x=>`${x.title||''} | ${x.text||''} | ${x.meal||''}`).join('\n');$('#pInclusions').value=(p.inclusions||[]).join('\n');$('#pExclusions').value=(p.exclusions||[]).join('\n');$('#pTerms').value=(p.terms||[]).join('\n');scrollTo({top:0,behavior:'smooth'})}
 function editGallery(id){const g=data.galleries.find(x=>x.id===id);edit.gallery=id;$('#galleryFormTitle').textContent='Edit gallery';$('#gTitle').value=g.title||'';$('#gDesc').value=g.description||'';scrollTo({top:0,behavior:'smooth'})}
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;for(const [attr,fn] of [['vup',()=>reorder('visa_cards',b.dataset.vup,-1)],['vdown',()=>reorder('visa_cards',b.dataset.vdown,1)],['pup',()=>reorder('packages',b.dataset.pup,-1)],['pdown',()=>reorder('packages',b.dataset.pdown,1)],['aup',()=>reorder('galleries',b.dataset.aup,-1)],['adown',()=>reorder('galleries',b.dataset.adown,1)],['gup',()=>reorder('visa_groups',b.dataset.gup,-1)],['gdown',()=>reorder('visa_groups',b.dataset.gdown,1)]])if(b.dataset[attr]!==undefined)return fn();if(b.dataset.vedit)return editVisa(b.dataset.vedit);if(b.dataset.pedit)return editPackage(b.dataset.pedit);if(b.dataset.aedit)return editGallery(b.dataset.aedit);for(const [attr,table] of [['vdel','visa_cards'],['pdel','packages'],['adel','galleries'],['gdel','visa_groups'],['fdel','feedback']])if(b.dataset[attr]){if(confirm('Delete this item?')){await call('delete',{table,id:b.dataset[attr]});await refresh()}return}});
-$$('.tab').forEach(b=>b.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));$$('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});$('#loginBtn').onclick=login;$('#loginId').onkeydown=e=>{if(e.key==='Enter')login()};$('#logoutBtn').onclick=()=>{sessionStorage.clear();location.reload()};$('#saveVisa').onclick=saveVisa;$('#clearVisa').onclick=clearVisa;$('#savePackage').onclick=savePackage;$('#clearPackage').onclick=clearPackage;$('#saveGallery').onclick=saveGallery;$('#clearGallery').onclick=clearGallery;$('#addGroup').onclick=async()=>{const name=$('#newGroup').value.trim();if(!name)return;await call('upsert',{table:'visa_groups',record:{id:slug(name)+'-'+Date.now(),name,active:true}});$('#newGroup').value='';await refresh()};if(adminId)showAdmin();
+$$('.tab').forEach(b=>b.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));$$('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});
+$('#loginBtn').onclick=login;$('#loginId').onkeydown=e=>{if(e.key==='Enter')login()};$('#logoutBtn').onclick=()=>{sessionStorage.clear();location.reload()};$('#saveVisa').onclick=saveVisa;$('#clearVisa').onclick=clearVisa;$('#savePackage').onclick=savePackage;$('#clearPackage').onclick=clearPackage;$('#saveGallery').onclick=saveGallery;$('#clearGallery').onclick=clearGallery;$('#addGroup').onclick=async()=>{const name=$('#newGroup').value.trim();if(!name)return;await call('upsert',{table:'visa_groups',record:{id:slug(name)+'-'+Date.now(),name,active:true}});$('#newGroup').value='';await refresh()};
+tryAutoLogin();
 })();

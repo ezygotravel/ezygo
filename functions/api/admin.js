@@ -25,6 +25,7 @@ function decodeBase64(base64) {
 
 export async function onRequest(context) {
   const { request, env } = context;
+  if (request.method === 'GET') return json({ ok: true, status: 'EzyGo admin API is running' });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const url = env.SUPABASE_URL;
@@ -65,7 +66,10 @@ export async function onRequest(context) {
   };
 
   try {
-    if (body.action === 'login') return json({ ok: true });
+    if (body.action === 'login') {
+      await req('/rest/v1/visa_groups?select=id&limit=1');
+      return json({ ok: true });
+    }
 
     if (body.action === 'list') {
       const [visa_groups, visa_cards, packages, galleries, feedback] = await Promise.all([
