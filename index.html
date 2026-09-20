@@ -347,6 +347,7 @@ footer{padding:68px 20px 34px}
 .tourTerm:before{content:'';width:5px;height:5px;border-radius:50%;background:#1598d4;position:absolute;left:1px;top:.62em}
 .tourEnquire{width:100%;height:50px;border:0;border-radius:14px;background:#1d9fd8;color:#fff;font-weight:700;font-size:13px;margin-top:27px;box-shadow:0 10px 22px rgba(29,159,216,.16)}
 .tourSourceNote{display:none}
+#tourExtraSections:empty{display:none}.tourExtraList{display:grid;gap:9px}.tourExtraItem{display:flex;gap:9px;align-items:flex-start;color:#696e74;font-size:12px;line-height:1.58}.tourExtraItem:before{content:'✓';width:19px;height:19px;border-radius:50%;background:#f3f8fa;color:#1598d4;display:grid;place-items:center;flex:none;font-size:10px;font-weight:800;margin-top:1px}
 
 @media(min-width:760px){
   .packagesPane{padding:42px 0}
@@ -358,7 +359,7 @@ footer{padding:68px 20px 34px}
   .tourDetailWrap{width:min(1180px,calc(100vw - 90px));max-width:none;display:grid;grid-template-columns:minmax(400px,500px) minmax(0,1fr);column-gap:clamp(34px,5vw,68px);align-items:start}
   .tourHero{position:sticky;top:24px;grid-column:1;grid-row:1 / span 8;border-radius:25px}
   .tourSlide img{aspect-ratio:.83/1}
-  .tourHeader,.tourBlock,.tourEnquire,.tourSourceNote{grid-column:2}
+  .tourHeader,.tourBlock,#tourExtraSections,.tourEnquire,.tourSourceNote{grid-column:2}
   .tourHeader{padding-top:4px}
   .tourHeader h1{font-size:clamp(36px,3.3vw,50px)}
   .twoLists{grid-template-columns:1fr 1fr;gap:28px}
@@ -375,7 +376,7 @@ footer{padding:68px 20px 34px}
 
 /* package-tab visibility fix */
 @media(max-width:480px){
-  .nav{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;}
+  .nav{width:100%;display:grid;grid-template-columns:repeat(var(--nav-columns,3),minmax(0,1fr));gap:0;}
   .navbtn{min-width:0;justify-content:center;padding:7px 2px 10px;font-size:10.8px;gap:3px;white-space:nowrap;}
   .navbtn svg{width:14px;height:14px;flex:none;}
   .navbtn.active:after{left:6px;right:6px;}
@@ -518,7 +519,7 @@ img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user
     <button class="navbtn active" data-tab="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="2.6"/><path d="M8.5 16h7M9.5 13.5h5"/></svg>Visa</button>
     <button class="navbtn" data-tab="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v11H4z"/><path d="M8 7V5h8v2M4 11h16"/><path d="M9 15h6"/></svg>Packages</button>
     <button class="navbtn" data-tab="services"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 15h18M5 15V9l7-4 7 4v6M8 19h8"/></svg>Services</button>
-    <button class="navbtn" data-tab="gallery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 2-2 5 5"/></svg>Gallery</button>
+    <button class="navbtn" data-tab="gallery" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 2-2 5 5"/></svg>Gallery</button>
   </nav>
   <div class="tools" id="tools">
     <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.8"/><path d="m20 20-3.4-3.4"/></svg><input id="search" placeholder="Search Country" autocomplete="off"></label>
@@ -538,7 +539,7 @@ img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user
     </div>
   </section>
   <section class="galleryPane" id="galleryPane"><div class="galleryGrid" id="galleryGrid"></div></section>
-  <section class="tourDetailPane" id="tourDetail"><div class="tourDetailWrap"><div class="tourHero"><div class="tourTrack" id="tourTrack"></div><div class="tourDots" id="tourDots"></div></div><div class="tourHeader"><div class="tourKicker" id="tourTag"></div><h1 id="tourTitle"></h1><div class="tourDestination" id="tourDestination"></div><p class="tourHeaderDesc" id="tourSummary"></p><div class="tourFacts"><div class="tourFact"><small>Duration</small><strong id="tourDuration"></strong></div><div class="tourFact"><small>Package price</small><strong id="tourPrice"></strong></div></div></div><section class="tourBlock"><h2>Highlights</h2><div class="highlightChips" id="tourHighlights"></div></section><section class="tourBlock"><h2>Day-by-day itinerary</h2><div class="itinerary" id="tourItinerary"></div></section><section class="tourBlock"><div class="twoLists"><div><h2>Inclusions</h2><div class="cleanList" id="tourInclusions"></div></div><div><h2>Exclusions</h2><div class="cleanList" id="tourExclusions"></div></div></div></section><section class="tourBlock"><h2>Important notes</h2><div class="tourTerms" id="tourTerms"></div></section><button class="tourEnquire" id="tourEnquire">Enquire now</button><div class="tourSourceNote" id="tourSourceNote"></div></div></section>
+  <section class="tourDetailPane" id="tourDetail"><div class="tourDetailWrap"><div class="tourHero"><div class="tourTrack" id="tourTrack"></div><div class="tourDots" id="tourDots"></div></div><div class="tourHeader"><div class="tourKicker" id="tourTag"></div><h1 id="tourTitle"></h1><div class="tourDestination" id="tourDestination"></div><p class="tourHeaderDesc" id="tourSummary"></p><div class="tourFacts" id="tourFacts"><div class="tourFact"><small>Duration</small><strong id="tourDuration"></strong></div><div class="tourFact"><small>Package price</small><strong id="tourPrice"></strong></div></div></div><section class="tourBlock"><h2>Highlights</h2><div class="highlightChips" id="tourHighlights"></div></section><section class="tourBlock"><h2>Day-by-day itinerary</h2><div class="itinerary" id="tourItinerary"></div></section><section class="tourBlock"><div class="twoLists"><div><h2>Inclusions</h2><div class="cleanList" id="tourInclusions"></div></div><div><h2>Exclusions</h2><div class="cleanList" id="tourExclusions"></div></div></div></section><div id="tourExtraSections"></div><section class="tourBlock"><h2>Important notes</h2><div class="tourTerms" id="tourTerms"></div></section><button class="tourEnquire" id="tourEnquire">Enquire now</button><div class="tourSourceNote" id="tourSourceNote"></div></div></section>
   <section class="cardDetail" id="cardDetail"><div class="packageDetail"><div class="detailSlider"><div class="detailTrack" id="packageTrack"></div><div class="detailDots" id="packageDots"></div></div><div class="packageTop"><div class="detailFlag" id="packageFlag"></div><div class="packageEyebrow" id="packageType"></div><h1 id="packageTitle"></h1><p id="packageDesc"></p><div class="packageFacts"><button type="button" class="fact blueFact factAction" id="packageValidityFact"><small>Validity</small><strong id="packageDays">Contact now</strong></button><button type="button" class="fact blueFact factAction" id="packageAvailabilityFact"><small>Availability</small><strong id="packageDate">Check now</strong></button><div class="fact blueFact"><small>Contact</small><strong id="packagePhone">+91 96563 09061</strong></div></div></div><div class="detailSection"><h2>Documents required</h2><div class="docList" id="packageDocs"></div></div><button class="enquire" id="packageEnquire">Enquire now</button></div></section>
   <section class="galleryDetail" id="galleryDetail"><div class="detailHead"><h1 id="detailTitle"></h1><p id="detailDesc"></p></div><div class="photoGrid" id="photoGrid"></div></section>
 </main>
