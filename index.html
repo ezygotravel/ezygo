@@ -497,6 +497,16 @@ footer{padding:68px 20px 34px}
   .fact.blueFact strong{font-size:10.5px!important}
   .skeletonPoster{border-radius:27px}
 }
+
+/* Instant-looking media: never show progressive/partial image painting. */
+.poster,.tourCardMedia,.detailSlide,.tourSlide,.photo,.galleryCard{background:#eef1f4}
+.smartImage{visibility:hidden}
+.smartImage.imageReady{visibility:visible}
+.flagcircle{overflow:hidden}
+.flagcircle .flagImg,.detailFlag .flagImg{width:25px;height:25px;object-fit:contain;visibility:hidden}
+.flagcircle .flagImg.imageReady,.detailFlag .flagImg.imageReady{visibility:visible}
+.flagcircle .flagText,.detailFlag .flagText{line-height:1}
+.detailFlag .flagImg{width:26px;height:26px}
 </style>
 
 <style>
