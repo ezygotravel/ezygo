@@ -5,8 +5,8 @@
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
   const apiHeaders = { apikey: C.SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${C.SUPABASE_PUBLISHABLE_KEY}` };
-  let cards = [], groups = [], packages = [];
-  let currentCard = null, currentTour = null;
+  let cards = [], groups = [], packages = [], galleries = [];
+  let currentCard = null, currentTour = null, currentGallery = null, currentImageIndex = 0;
   let currentTourImageIndex = 0, currentTourImages = [];
   let currentVisaImageIndex = 0, currentVisaImages = [];
   let currentView = 'explorePane';
@@ -522,6 +522,11 @@
     }
     return out;
   }
+  function galleryHasImages(g={}){
+    if(String(g.cover_path||'').trim()) return true;
+    return (Array.isArray(g.image_paths)?g.image_paths:[]).some(x=>String(x||'').trim());
+  }
+  function visibleGalleries(){ return galleries.filter(galleryHasImages); }
   function cleanGroupName(v=''){ return String(v).replace(/^[\s🌏🌍]+/u,'').trim(); }
   function svgPlaceholder(label='Travel') {
     const txt = esc(label).slice(0,28);
@@ -574,7 +579,11 @@
   function packageLoadingCards(count=3){
     return Array.from({length:count},()=>`<article class="tourSkeleton" aria-hidden="true"><div class="tourSkeletonMedia skeletonGlow"></div><div class="tourSkeletonBody"><div class="skeletonLine skeletonGlow"></div><div class="skeletonLine short skeletonGlow"></div></div></article>`).join('');
   }
+  function galleryLoadingCards(count=6){
+    return Array.from({length:count},()=>`<div class="gallerySkeleton" aria-hidden="true"><div class="gallerySkeletonMedia skeletonGlow"></div><div class="skeletonLine short skeletonGlow"></div></div>`).join('');
+  }
   function showPackageLoading(){const grid=$('#packageGrid2');if(grid)grid.innerHTML=packageLoadingCards(window.innerWidth>=900?3:2)}
+  function showGalleryLoading(){const grid=$('#galleryGrid');if(grid)grid.innerHTML=galleryLoadingCards(window.innerWidth>=900?6:4)}
   function preloadMedia(paths,priority='low'){
     for(const path of paths||[]){
       const url=mediaUrl(path);
@@ -589,16 +598,17 @@
   function observeMediaAhead(){
     if(mediaObserver)mediaObserver.disconnect();
     if(!('IntersectionObserver' in window))return;
-    mediaObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const el=entry.target;if(el.dataset.id){const card=cards.find(x=>String(x.id)===String(el.dataset.id));if(card)preloadMedia([card.cover_path,...arr(card.detail_paths).slice(0,2)],'low')}else if(el.dataset.tour){const tour=packages.find(x=>String(x.id)===String(el.dataset.tour));if(tour)preloadMedia([tour.cover_path,...arr(tour.image_paths).slice(0,2)],'low')}mediaObserver.unobserve(el)}},{rootMargin:'1800px 0px',threshold:.01});
-    $$('[data-id],[data-tour]').forEach(el=>mediaObserver.observe(el));
+    mediaObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const el=entry.target;if(el.dataset.id){const card=cards.find(x=>String(x.id)===String(el.dataset.id));if(card)preloadMedia([card.cover_path,...arr(card.detail_paths).slice(0,2)],'low')}else if(el.dataset.tour){const tour=packages.find(x=>String(x.id)===String(el.dataset.tour));if(tour)preloadMedia([tour.cover_path,...arr(tour.image_paths).slice(0,2)],'low')}else if(el.dataset.gallery){const gallery=galleries.find(x=>String(x.id)===String(el.dataset.gallery));if(gallery)preloadMedia([gallery.cover_path,...arr(gallery.image_paths).slice(0,2)],'low')}mediaObserver.unobserve(el)}},{rootMargin:'1800px 0px',threshold:.01});
+    $$('[data-id],[data-tour],[data-gallery]').forEach(el=>mediaObserver.observe(el));
   }
   function warmMediaAfterCovers(){
-    const run=()=>{packages.slice(0,3).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'low'))};
+    const run=()=>{packages.slice(0,3).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'low'));galleries.slice(0,6).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,1)],'low'))};
     if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:2200});else setTimeout(run,1400);
   }
   function warmTarget(target){
     const card=target.closest?.('[data-id]');if(card){const item=cards.find(x=>String(x.id)===String(card.dataset.id));if(item)preloadMedia([item.cover_path,...arr(item.detail_paths)],'high');return}
     const tour=target.closest?.('[data-tour]');if(tour){const item=packages.find(x=>String(x.id)===String(tour.dataset.tour));if(item)preloadMedia([item.cover_path,...arr(item.image_paths)],'high');return}
+    const gallery=target.closest?.('[data-gallery]');if(gallery){const item=galleries.find(x=>String(x.id)===String(gallery.dataset.gallery));if(item)preloadMedia([item.cover_path,...arr(item.image_paths)],'high')}
   }
   function revealApp(){document.body.classList.add('appReady');const splash=$('#bootSplash');if(splash)splash.classList.add('done')}
   async function rest(table, query='') {
@@ -608,15 +618,16 @@
   }
   async function loadData() {
     try {
-      const [g,c,p] = await Promise.all([
+      const [g,c,p,ga] = await Promise.all([
         rest('visa_groups','select=*&active=eq.true&order=sort_order.asc'),
         rest('visa_cards','select=*&active=eq.true&order=sort_order.asc'),
-        rest('packages','select=*&active=eq.true&order=sort_order.asc')
+        rest('packages','select=*&active=eq.true&order=sort_order.asc'),
+        rest('galleries','select=*&active=eq.true&order=sort_order.asc')
       ]);
-      groups=g; cards=c; packages=mergeCuratedPackages(p);
+      groups=g; cards=c; packages=mergeCuratedPackages(p); galleries=ga;
       isLoadingCards=false;
       if(cards.length) renderCards(); else showCardLoading();
-      renderPackages(); buildTypeChips(); syncContentNavigation();
+      renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
       observeMediaAhead(); warmMediaAfterCovers();
     } catch (err) {
       console.error(err);
@@ -629,9 +640,11 @@
   }
   function syncContentNavigation() {
     const packageTab=document.querySelector('.navbtn[data-tab="packages"]');
+    const galleryTab=document.querySelector('.navbtn[data-tab="gallery"]');
     if(packageTab) packageTab.hidden=packages.length===0;
+    if(galleryTab) galleryTab.hidden=visibleGalleries().length===0;
     const nav=document.querySelector('.nav');
-    if(nav) nav.style.setProperty('--nav-columns','3');
+    if(nav) nav.style.setProperty('--nav-columns',galleryTab?.hidden?'3':'4');
     const filterBtn=$('#filterBtn');
     if(filterBtn) filterBtn.style.visibility=cards.length?'visible':'hidden';
   }
@@ -655,6 +668,10 @@
   }
   function renderPackages(){
     $('#packageGrid2').innerHTML=packages.map((p,i)=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="${i<3?'eager':'lazy'}" fetchpriority="${i<2?'high':'auto'}" decoding="async" src="${mediaUrl(p.cover_path,p.title)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></article>`).join('') || '<div class="empty">No packages available.</div>';requestAnimationFrame(observeMediaAhead);
+  }
+  function renderGalleries(){
+    const list=visibleGalleries();
+    $('#galleryGrid').innerHTML=list.map(g=>{const cover=String(g.cover_path||'').trim() || arr(g.image_paths).find(x=>String(x||'').trim()) || '';return `<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" decoding="async" src="${mediaUrl(cover,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`}).join('');requestAnimationFrame(observeMediaAhead);
   }
   function arr(v){ return Array.isArray(v)?v:[]; }
   function setVisaSlide(index, animate=true){
@@ -819,6 +836,11 @@
 
     if(push) history.pushState({view:'tourDetail',id:p.id},'','#tour-'+p.id);
   }
+  function openGallery(id,push=true){
+    const g=galleries.find(x=>String(x.id)===String(id)); if(!g)return; currentGallery=g;preloadMedia([g.cover_path,...arr(g.image_paths)]); $('#detailTitle').textContent=g.title||''; $('#detailDesc').textContent=g.description||'';
+    const imgs=arr(g.image_paths); $('#photoGrid').innerHTML=imgs.map((src,i)=>`<button class="photo" data-photo="${i}"><img loading="lazy" decoding="async" fetchpriority="auto" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)} image ${i+1}"></button>`).join('') || '<div class="empty">No photos uploaded yet.</div>';
+    showOnly('galleryDetail'); if(push) history.pushState({view:'galleryDetail',id:g.id},'','#gallery-'+g.id);
+  }
   function updateBackButton(){
     const btn=$('#backBtn');
     if(!btn) return;
@@ -827,20 +849,20 @@
   }
   function showOnly(view,scrollTop=true){
     currentView=view;
-    const ids=['explorePane','packagesPane','servicesPane','tourDetail','cardDetail'];
+    const ids=['explorePane','packagesPane','servicesPane','galleryPane','tourDetail','cardDetail','galleryDetail'];
     ids.forEach(id=>{
       const el=$('#'+id);
       if(el) el.style.display=id===view?'block':'none';
     });
     $('#tools').style.display=view==='explorePane'?'grid':'none';
     $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===({
-      explorePane:'explore',packagesPane:'packages',servicesPane:'services'
+      explorePane:'explore',packagesPane:'packages',servicesPane:'services',galleryPane:'gallery'
     }[view]||'')));
     if(scrollTop) window.scrollTo({top:0,behavior:'auto'});
     requestAnimationFrame(updateBackButton);
   }
   function showTab(tab,push=true){
-    const map={explore:'explorePane',packages:'packagesPane',services:'servicesPane'};
+    const map={explore:'explorePane',packages:'packagesPane',services:'servicesPane',gallery:'galleryPane'};
     const view=map[tab]||'explorePane';
     showOnly(view,true);
     if(push) history.pushState({view},'','#'+tab);
@@ -863,15 +885,18 @@
     try{ const r=await fetch(`${C.SUPABASE_URL}/rest/v1/feedback`,{method:'POST',headers:{...apiHeaders,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({name,phone,message})}); if(!r.ok) throw new Error(await r.text()); $('#feedbackForm').reset(); let s=$('#feedbackStatus'); if(!s){s=document.createElement('div');s.id='feedbackStatus';s.className='feedbackSuccess';$('#feedbackForm').appendChild(s)} s.textContent='Thank you. Your feedback has been sent.'; }
     catch(err){console.error(err); alert('Could not send feedback right now. Please try again.');} finally{btn.disabled=false;btn.textContent=old;}
   }
+  function openLightbox(g,index=0){currentGallery=g;currentImageIndex=index;$('#lbTitle').textContent=g.title;const imgs=arr(g.image_paths);$('#lbTrack').innerHTML=imgs.map((src,i)=>`<div class="lbSlide"><img loading="${i===index?'eager':'lazy'}" fetchpriority="${i===index?'high':'auto'}" decoding="async" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)}"></div>`).join('');$('#lightbox').classList.add('open');document.body.style.overflow='hidden';requestAnimationFrame(()=>{$('#lbTrack').scrollLeft=$('#lbTrack').clientWidth*index;updateCount(index)})}
+  function updateCount(i){currentImageIndex=i;$('#lbCount').textContent=`${i+1} / ${arr(currentGallery?.image_paths).length}`}
+  function closeLightbox(){$('#lightbox').classList.remove('open');document.body.style.overflow=''}
   document.addEventListener('contextmenu',e=>{if(e.target.closest('img'))e.preventDefault()});
   document.addEventListener('dragstart',e=>{if(e.target.closest('img'))e.preventDefault()});
   document.addEventListener('DOMContentLoaded',()=>{
-    $('#year').textContent=new Date().getFullYear();showCardLoading();showPackageLoading();setTimeout(revealApp,900);loadData();
+    $('#year').textContent=new Date().getFullYear();showCardLoading();showPackageLoading();showGalleryLoading();setTimeout(revealApp,900);loadData();
     document.addEventListener('pointerover',e=>{if(e.pointerType==='mouse')warmTarget(e.target)},{passive:true});document.addEventListener('touchstart',e=>warmTarget(e.target),{passive:true});
-    $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openCardDetail(c.dataset.id)}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c)openTour(c.dataset.tour)};
+    $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openCardDetail(c.dataset.id)}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c)openTour(c.dataset.tour)}; $('#galleryGrid').onclick=e=>{const c=e.target.closest('[data-gallery]');if(c)openGallery(c.dataset.gallery)}; $('#photoGrid').onclick=e=>{const b=e.target.closest('[data-photo]');if(b&&currentGallery)openLightbox(currentGallery,Number(b.dataset.photo))};
     $$('.navbtn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); $('#backBtn').onclick=handleBack; window.addEventListener('scroll',updateBackButton,{passive:true}); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
     $('#feedbackForm').onsubmit=submitFeedback; $('#contactBtn').onclick=()=>window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('Hi EzyGo Travels, I would like to make a travel enquiry.')}`,'_blank'); $('#packageEnquire').onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); const validityFact=$('#packageValidityFact');if(validityFact)validityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please confirm visa validity for ${currentCard.country}.`)}`,'_blank'); const availabilityFact=$('#packageAvailabilityFact');if(availabilityFact)availabilityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please check current availability/details for ${currentCard.country}.`)}`,'_blank'); $('#tourEnquire').onclick=()=>currentTour&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentTour.title}.`)}`,'_blank');
-    $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open'));
-    window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else showOnly(st?.view||'explorePane',true)}); history.replaceState({view:'explorePane'},'',location.pathname); currentView='explorePane'; updateBackButton();
+    $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open')); $('#lbClose').onclick=closeLightbox; $('#lbPrev').onclick=()=>{if(!currentGallery)return;const n=Math.max(0,currentImageIndex-1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)}; $('#lbNext').onclick=()=>{if(!currentGallery)return;const n=Math.min(arr(currentGallery.image_paths).length-1,currentImageIndex+1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)};
+    window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else if(st?.view==='galleryDetail')openGallery(st.id,false); else showOnly(st?.view||'explorePane',true)}); history.replaceState({view:'explorePane'},'',location.pathname); currentView='explorePane'; updateBackButton();
   });
 })();
