@@ -12,7 +12,8 @@
   let currentView = 'explorePane';
   let isLoadingCards = true;
   let activeType = '', activeDays = '';
-  const preloadedMedia = new Set();
+  const FIRST_COVER_COUNT = 10;
+  const preloadedMedia = new Map();
   let mediaObserver = null;
 
   function esc(v='') { return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -74,15 +75,44 @@
   function showPackageLoading(){const grid=$('#packageGrid2');if(grid)grid.innerHTML=packageLoadingCards(window.innerWidth>=900?3:2)}
   function showGalleryLoading(){const grid=$('#galleryGrid');if(grid)grid.innerHTML=galleryLoadingCards(window.innerWidth>=900?6:4)}
   function preloadMedia(paths,priority='low'){
+    const rank={low:1,auto:2,high:3};
     for(const path of paths||[]){
       const url=mediaUrl(path);
-      if(!url||url.startsWith('data:')||preloadedMedia.has(url))continue;
-      preloadedMedia.add(url);
+      if(!url||url.startsWith('data:'))continue;
+      const previous=preloadedMedia.get(url);
+      if(previous && (rank[previous]||1)>=(rank[priority]||1)) continue;
+      preloadedMedia.set(url,priority);
       const img=new Image();
       img.decoding='async';
       try{img.fetchPriority=priority}catch(_){}
       img.src=url;
     }
+  }
+  function orderedCards(){
+    const ordered=[];
+    const groupOrder=groups.length?groups:[...new Set(cards.map(c=>c.group_name))].map((name,i)=>({name,sort_order:i}));
+    for(const group of groupOrder) ordered.push(...cards.filter(card=>card.group_name===group.name));
+    return ordered.length?ordered:cards;
+  }
+  function preloadInitialCovers(){
+    preloadMedia(orderedCards().slice(0,FIRST_COVER_COUNT).map(item=>item.cover_path),'high');
+  }
+  function warmRemainingCovers(){
+    const queue=orderedCards().slice(FIRST_COVER_COUNT).map(item=>item.cover_path).filter(Boolean);
+    let index=0;
+    const schedule=fn=>{
+      if('requestIdleCallback' in window) requestIdleCallback(fn,{timeout:1200});
+      else setTimeout(()=>fn(null),180);
+    };
+    const run=deadline=>{
+      let loaded=0;
+      while(index<queue.length && loaded<6 && (!deadline || deadline.didTimeout || deadline.timeRemaining()>5)){
+        preloadMedia([queue[index++]],'low');
+        loaded++;
+      }
+      if(index<queue.length) schedule(run);
+    };
+    if(queue.length) schedule(run);
   }
   function observeMediaAhead(){
     if(mediaObserver)mediaObserver.disconnect();
@@ -91,13 +121,18 @@
     $$('[data-id],[data-tour],[data-gallery]').forEach(el=>mediaObserver.observe(el));
   }
   function warmMediaAfterCovers(){
-    const run=()=>{packages.slice(0,3).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'low'));galleries.slice(0,6).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,1)],'low'))};
-    if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:2200});else setTimeout(run,1400);
+    const run=()=>{
+      cards.slice(0,FIRST_COVER_COUNT).forEach(item=>preloadMedia(arr(item.detail_paths).slice(0,2),'low'));
+      packages.slice(0,3).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'low'));
+      galleries.slice(0,6).forEach(item=>preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,1)],'low'));
+      warmRemainingCovers();
+    };
+    if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:1400});else setTimeout(run,650);
   }
   function warmTarget(target){
-    const card=target.closest?.('[data-id]');if(card){const item=cards.find(x=>String(x.id)===String(card.dataset.id));if(item)preloadMedia([item.cover_path,...arr(item.detail_paths)],'high');return}
-    const tour=target.closest?.('[data-tour]');if(tour){const item=packages.find(x=>String(x.id)===String(tour.dataset.tour));if(item)preloadMedia([item.cover_path,...arr(item.image_paths)],'high');return}
-    const gallery=target.closest?.('[data-gallery]');if(gallery){const item=galleries.find(x=>String(x.id)===String(gallery.dataset.gallery));if(item)preloadMedia([item.cover_path,...arr(item.image_paths)],'high')}
+    const card=target.closest?.('[data-id]');if(card){const item=cards.find(x=>String(x.id)===String(card.dataset.id));if(item){preloadMedia([item.cover_path,...arr(item.detail_paths).slice(0,2)],'high');preloadMedia(arr(item.detail_paths).slice(2),'low')}return}
+    const tour=target.closest?.('[data-tour]');if(tour){const item=packages.find(x=>String(x.id)===String(tour.dataset.tour));if(item){preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'high');preloadMedia(arr(item.image_paths).slice(2),'low')}return}
+    const gallery=target.closest?.('[data-gallery]');if(gallery){const item=galleries.find(x=>String(x.id)===String(gallery.dataset.gallery));if(item){preloadMedia([item.cover_path,...arr(item.image_paths).slice(0,2)],'high');preloadMedia(arr(item.image_paths).slice(2),'low')}}
   }
   function revealApp(){document.body.classList.add('appReady');const splash=$('#bootSplash');if(splash)splash.classList.add('done')}
   async function rest(table, query='') {
@@ -106,24 +141,32 @@
     return r.json();
   }
   async function loadData() {
+    const groupsRequest=rest('visa_groups','select=*&active=eq.true&order=sort_order.asc');
+    const cardsRequest=rest('visa_cards','select=*&active=eq.true&order=sort_order.asc');
+    const packagesRequest=rest('packages','select=*&active=eq.true&order=sort_order.asc');
+    const galleriesRequest=rest('galleries','select=*&active=eq.true&order=sort_order.asc');
+    const secondaryRequests=Promise.allSettled([packagesRequest,galleriesRequest]);
+
     try {
-      const [g,c,p,ga] = await Promise.all([
-        rest('visa_groups','select=*&active=eq.true&order=sort_order.asc'),
-        rest('visa_cards','select=*&active=eq.true&order=sort_order.asc'),
-        rest('packages','select=*&active=eq.true&order=sort_order.asc'),
-        rest('galleries','select=*&active=eq.true&order=sort_order.asc')
-      ]);
-      groups=g; cards=c; packages=p; galleries=ga;
-      isLoadingCards=false;
+      const [g,c]=await Promise.all([groupsRequest,cardsRequest]);
+      groups=g; cards=c; isLoadingCards=false;
+      preloadInitialCovers();
       if(cards.length) renderCards(); else showCardLoading();
-      renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
-      observeMediaAhead(); warmMediaAfterCovers();
+      buildTypeChips();
+      observeMediaAhead();
+      revealApp();
     } catch (err) {
       console.error(err);
       isLoadingCards=true; showCardLoading();
-    } finally {
       revealApp();
     }
+
+    const [packageResult,galleryResult]=await secondaryRequests;
+    if(packageResult.status==='fulfilled'){packages=packageResult.value;renderPackages()}else console.error(packageResult.reason);
+    if(galleryResult.status==='fulfilled'){galleries=galleryResult.value;renderGalleries()}else console.error(galleryResult.reason);
+    syncContentNavigation();
+    observeMediaAhead();
+    warmMediaAfterCovers();
   }
   function syncContentNavigation() {
     const packageTab=document.querySelector('.navbtn[data-tab="packages"]');
@@ -135,7 +178,7 @@
   }
   function cardMarkup(c,index=999) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
-    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="${index<20?'eager':'lazy'}" fetchpriority="${index<8?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
+    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="${index<FIRST_COVER_COUNT?'eager':'lazy'}" fetchpriority="${index<FIRST_COVER_COUNT?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
   }
   function renderCards() {
     const q=($('#search')?.value||'').trim().toLowerCase();
@@ -202,12 +245,12 @@
 
   function openCardDetail(id,push=true){
     const c=cards.find(x=>String(x.id)===String(id)); if(!c)return; currentCard=c;
-    currentVisaImages=[c.cover_path,...arr(c.detail_paths)].filter(Boolean);preloadMedia(currentVisaImages);
+    currentVisaImages=[c.cover_path,...arr(c.detail_paths)].filter(Boolean);preloadMedia(currentVisaImages.slice(0,3),'high');preloadMedia(currentVisaImages.slice(3),'low');
     const sliderItems=currentVisaImages.length?currentVisaImages:[''];
 
     $('#packageTrack').innerHTML=sliderItems.map((src,i)=>`
       <div class="detailSlide">
-        <img loading="${i===0?'eager':'lazy'}" fetchpriority="${i===0?'high':'auto'}" decoding="async" src="${mediaUrl(src,`${c.country} ${i+1}`)}" alt="${esc(c.country)} image ${i+1}" draggable="false">
+        <img loading="${i<2?'eager':'lazy'}" fetchpriority="${i<2?'high':'auto'}" decoding="async" src="${mediaUrl(src,`${c.country} ${i+1}`)}" alt="${esc(c.country)} image ${i+1}" draggable="false">
       </div>`).join('');
     $('#packageDots').innerHTML=sliderItems.length>1
       ? sliderItems.map((_,i)=>`<button type="button" class="detailDot ${i===0?'active':''}" data-visa-dot="${i}" aria-label="Show image ${i+1}" aria-current="${i===0?'true':'false'}"></button>`).join('')
@@ -273,10 +316,10 @@
 
   function openTour(id,push=true){
     const p=packages.find(x=>String(x.id)===String(id)); if(!p)return; currentTour=p;
-    currentTourImages=[p.cover_path,...arr(p.image_paths)].filter(Boolean);preloadMedia(currentTourImages);
+    currentTourImages=[p.cover_path,...arr(p.image_paths)].filter(Boolean);preloadMedia(currentTourImages.slice(0,3),'high');preloadMedia(currentTourImages.slice(3),'low');
     const sliderItems=currentTourImages.length?currentTourImages:[''];
 
-    $('#tourTrack').innerHTML=sliderItems.map((src,i)=>`<div class="tourSlide"><img loading="${i===0?'eager':'lazy'}" fetchpriority="${i===0?'high':'auto'}" decoding="async" src="${mediaUrl(src,`${p.title} ${i+1}`)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)} image ${i+1}" draggable="false"></div>`).join('');
+    $('#tourTrack').innerHTML=sliderItems.map((src,i)=>`<div class="tourSlide"><img loading="${i<2?'eager':'lazy'}" fetchpriority="${i<2?'high':'auto'}" decoding="async" src="${mediaUrl(src,`${p.title} ${i+1}`)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)} image ${i+1}" draggable="false"></div>`).join('');
     $('#tourDots').innerHTML=sliderItems.length>1
       ? sliderItems.map((_,i)=>`<button class="tourDot ${i===0?'active':''}" type="button" data-tour-dot="${i}" aria-label="Show image ${i+1}" aria-current="${i===0?'true':'false'}"></button>`).join('')
       : '';
@@ -314,8 +357,8 @@
     if(push) history.pushState({view:'tourDetail',id:p.id},'','#tour-'+p.id);
   }
   function openGallery(id,push=true){
-    const g=galleries.find(x=>String(x.id)===String(id)); if(!g)return; currentGallery=g;preloadMedia([g.cover_path,...arr(g.image_paths)]); $('#detailTitle').textContent=g.title||''; $('#detailDesc').textContent=g.description||'';
-    const imgs=arr(g.image_paths); $('#photoGrid').innerHTML=imgs.map((src,i)=>`<button class="photo" data-photo="${i}"><img loading="lazy" decoding="async" fetchpriority="auto" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)} image ${i+1}"></button>`).join('') || '<div class="empty">No photos uploaded yet.</div>';
+    const g=galleries.find(x=>String(x.id)===String(id)); if(!g)return; currentGallery=g;preloadMedia([g.cover_path,...arr(g.image_paths).slice(0,4)],'high');preloadMedia(arr(g.image_paths).slice(4),'low'); $('#detailTitle').textContent=g.title||''; $('#detailDesc').textContent=g.description||'';
+    const imgs=arr(g.image_paths); $('#photoGrid').innerHTML=imgs.map((src,i)=>`<button class="photo" data-photo="${i}"><img loading="${i<4?'eager':'lazy'}" decoding="async" fetchpriority="${i<4?'high':'auto'}" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)} image ${i+1}"></button>`).join('') || '<div class="empty">No photos uploaded yet.</div>';
     showOnly('galleryDetail'); if(push) history.pushState({view:'galleryDetail',id:g.id},'','#gallery-'+g.id);
   }
   function updateBackButton(){
@@ -335,7 +378,7 @@
     $$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===({
       explorePane:'explore',packagesPane:'packages',servicesPane:'services',galleryPane:'gallery'
     }[view]||'')));
-    if(scrollTop) window.scrollTo({top:0,behavior:'auto'});
+    if(scrollTop) window.scrollTo(0,0);
     requestAnimationFrame(updateBackButton);
   }
   function showTab(tab,push=true){
@@ -345,14 +388,11 @@
     if(push) history.pushState({view},'','#'+tab);
   }
   function handleBack(){
-    if(window.scrollY>80){
-      window.scrollTo({top:0,behavior:'smooth'});
-      return;
-    }
     if(currentView!=='explorePane'){
       history.back();
       return;
     }
+    if(window.scrollY>80) window.scrollTo(0,0);
     updateBackButton();
   }
   function buildTypeChips(){ const types=[...new Set(cards.map(c=>c.type).filter(Boolean))]; $('#typeChips').innerHTML=types.map(t=>`<button class="chip" data-type="${esc(t)}">${esc(t)}</button>`).join(''); $$('[data-type]').forEach(b=>b.onclick=()=>{activeType=activeType===b.dataset.type?'':b.dataset.type; $$('[data-type]').forEach(x=>x.classList.toggle('active',x.dataset.type===activeType));}); }
@@ -373,7 +413,7 @@
     $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openCardDetail(c.dataset.id)}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c)openTour(c.dataset.tour)}; $('#galleryGrid').onclick=e=>{const c=e.target.closest('[data-gallery]');if(c)openGallery(c.dataset.gallery)}; $('#photoGrid').onclick=e=>{const b=e.target.closest('[data-photo]');if(b&&currentGallery)openLightbox(currentGallery,Number(b.dataset.photo))};
     $$('.navbtn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); $('#backBtn').onclick=handleBack; window.addEventListener('scroll',updateBackButton,{passive:true}); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
     $('#feedbackForm').onsubmit=submitFeedback; $('#contactBtn').onclick=()=>window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('Hi EzyGo Travels, I would like to make a travel enquiry.')}`,'_blank'); $('#packageEnquire').onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); const validityFact=$('#packageValidityFact');if(validityFact)validityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please confirm visa validity for ${currentCard.country}.`)}`,'_blank'); const availabilityFact=$('#packageAvailabilityFact');if(availabilityFact)availabilityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please check current availability/details for ${currentCard.country}.`)}`,'_blank'); $('#tourEnquire').onclick=()=>currentTour&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentTour.title}.`)}`,'_blank');
-    $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open')); $('#lbClose').onclick=closeLightbox; $('#lbPrev').onclick=()=>{if(!currentGallery)return;const n=Math.max(0,currentImageIndex-1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)}; $('#lbNext').onclick=()=>{if(!currentGallery)return;const n=Math.min(arr(currentGallery.image_paths).length-1,currentImageIndex+1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)};
+    $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open')); $('#lbClose').onclick=closeLightbox; $('#lbPrev').onclick=()=>{if(!currentGallery)return;const n=Math.max(0,currentImageIndex-1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'auto'});updateCount(n)}; $('#lbNext').onclick=()=>{if(!currentGallery)return;const n=Math.min(arr(currentGallery.image_paths).length-1,currentImageIndex+1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'auto'});updateCount(n)};
     window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else if(st?.view==='galleryDetail')openGallery(st.id,false); else showOnly(st?.view||'explorePane',true)}); history.replaceState({view:'explorePane'},'',location.pathname); currentView='explorePane'; updateBackButton();
   });
 })();
