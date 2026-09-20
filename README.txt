@@ -5,8 +5,8 @@ EZYGO TRAVEL - SUPABASE + CLOUDFLARE PAGES SETUP
 - SQL Editor -> New query.
 - Paste the full content of: supabase/setup.sql
 - Run it once.
-- This creates visa sections, visa cards, packages and feedback and the site-media Storage bucket.
-- Visa starter content can be seeded. V16 also bundles five supplied travel packages as a customer-side starter fallback so they appear immediately after deployment. To make those five packages normal Supabase/Admin records, run supabase/package-content-v16.sql once. Future packages can be created and managed from Admin.
+- This creates visa sections, visa cards, packages, galleries, feedback and the site-media Storage bucket.
+- Existing textual visa/package/gallery content is seeded. Images are intentionally not hot-linked. Upload them from Admin so the live site uses Supabase Storage.
 
 2) GITHUB
 - Create one GitHub repository for this project.
@@ -34,8 +34,8 @@ EZYGO TRAVEL - SUPABASE + CLOUDFLARE PAGES SETUP
 - Open: https://YOUR-DOMAIN/admin.html
 - Enter Admin Login ID: Goezy
 - The ID is checked by the Cloudflare Pages Function at /api/admin, not exposed in customer JavaScript.
-- Upload visa and package images from Admin. They are resized/compressed to WebP before being stored in Supabase Storage.
-- Use the up/down controls to change visa card, package and visa-section order.
+- Upload card/package/gallery images from Admin. They are stored in Supabase Storage.
+- Use the up/down controls to change card/package/gallery/visa-section order.
 - Customer feedback submitted on the public site appears in the Feedback tab.
 
 6) DOMAIN

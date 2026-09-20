@@ -5,25 +5,13 @@
   X-Frame-Options: SAMEORIGIN
 
 /assets/*
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
 /*.png
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
 /*.jpg
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
 /*.webp
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
-
-/index.html
-  Cache-Control: no-cache, must-revalidate
-
-/admin.html
-  Cache-Control: no-cache, must-revalidate
-
-/*.js
-  Cache-Control: no-cache, must-revalidate
-
-/service-worker.js
-  Cache-Control: no-cache, must-revalidate
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
