@@ -8,6 +8,8 @@ let mediaDraft={
   package:{cover:'',images:[],newCover:null,newImages:[]}
 };
 const endpoint='/api/admin';
+const SAVED_PACKAGE_SEED_ID=window.EZYGO_PACKAGE_SEED_ID||'__ezygo_packages_20260920_v16__';
+const SAVED_PACKAGES=Array.isArray(window.EZYGO_SAVED_PACKAGES)?window.EZYGO_SAVED_PACKAGES:[];
 let busyCount=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const cleanGroupName=v=>String(v||'').replace(/^[\s🌏🌍]+/u,'').trim();
@@ -108,7 +110,22 @@ async function tryAutoLogin(){
   try{ await showAdmin(); }
   catch(e){ sessionStorage.removeItem('ezygo_admin_id'); adminId=''; openLoginView(); setLoginStatus('Please log in again. '+(e.message||''),'error'); }
 }
-async function refresh(){const j=await call('list');data=j.data;renderAll()}
+async function seedSavedPackagesIfNeeded(){
+  if(!SAVED_PACKAGES.length)return false;
+  if((data.packages||[]).some(p=>String(p.id)===SAVED_PACKAGE_SEED_ID))return false;
+  const ids=new Set((data.packages||[]).map(p=>String(p.id||'')));
+  const titles=new Set((data.packages||[]).map(p=>String(p.title||'').trim().toLowerCase()));
+  let next=(data.packages||[]).reduce((m,p)=>Math.max(m,Number(p.sort_order)||0),-1)+1;
+  for(const pkg of SAVED_PACKAGES){
+    const key=String(pkg.title||'').trim().toLowerCase();
+    if(ids.has(String(pkg.id))||(key&&titles.has(key)))continue;
+    const record={id:pkg.id,title:pkg.title,tag:pkg.tag||'Travel package',destination:pkg.destination||'',duration:pkg.duration||'',price:'Ask for price',summary:pkg.summary||'',highlights:pkg.highlights||[],itinerary:pkg.itinerary||[],inclusions:pkg.inclusions||[],exclusions:pkg.exclusions||[],terms:pkg.terms||[],cover_path:pkg.cover_path||'',image_paths:pkg.image_paths||[],sort_order:next++,active:true};
+    await call('upsert',{table:'packages',record});
+  }
+  await call('upsert',{table:'packages',record:{id:SAVED_PACKAGE_SEED_ID,title:'EzyGo package import marker',tag:'system',destination:'',duration:'',price:'Ask for price',summary:'',highlights:[],itinerary:[],inclusions:[],exclusions:[],terms:[],cover_path:'',image_paths:[],sort_order:999999,active:true}});
+  return true;
+}
+async function refresh(){let j=await call('list');data=j.data;if(await seedSavedPackagesIfNeeded()){j=await call('list');data=j.data}data.packages=(data.packages||[]).filter(p=>String(p.id)!==SAVED_PACKAGE_SEED_ID);renderAll()}
 function renderAll(){renderGroups();renderVisas();renderPackages();renderFeedback()}
 function renderGroups(){
   const opts=data.visa_groups.length?data.visa_groups.map(g=>`<option value="${esc(g.name)}">${esc(cleanGroupName(g.name))}</option>`).join(''):'<option value="">Create a visa section first</option>';
@@ -130,8 +147,8 @@ async function savePackage(){const btn=$('#savePackage'),title=$('#pTitle').valu
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 async function reorderVisa(id,dir){const current=data.visa_cards.find(x=>x.id===id);if(!current)return;const arr=data.visa_cards.filter(x=>x.group_name===current.group_name);const i=arr.findIndex(x=>x.id===id),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];await call('reorder',{table:'visa_cards',ids:arr.map(x=>x.id)});await refresh()}
 async function reorder(table,id,dir){const arr=[...data[table]];const i=arr.findIndex(x=>x.id===id),j=i+dir;if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];await call('reorder',{table,ids:arr.map(x=>x.id)});await refresh()}
-function editVisa(id){const v=data.visa_cards.find(x=>x.id===id);if(!v)return;edit.visa=id;$('#visaFormTitle').textContent='Edit visa card';$('#vCountry').value=v.country||'';$('#vFlag').value=v.flag||'';$('#vGroup').value=v.group_name||'';$('#vType').value=v.type||'';$('#vValidity').value=v.validity||'';$('#vFee').value=v.fee||'';$('#vDateLabel').value=v.date_label||'';$('#vDeadline').value=v.deadline||'';$('#vDesc').value=v.description||'';$('#vDocs').value=(v.documents||[]).join('\n');resetDraft('visa',v.cover_path,v.detail_paths);scrollTo({top:0,behavior:'smooth'})}
-function editPackage(id){const p=data.packages.find(x=>x.id===id);if(!p)return;edit.package=id;$('#packageFormTitle').textContent='Edit package';$('#pTitle').value=p.title||'';$('#pTag').value=p.tag||'';$('#pDestination').value=p.destination||'';$('#pDuration').value=p.duration||'';$('#pSummary').value=p.summary||'';$('#pHighlights').value=(p.highlights||[]).join('\n');$('#pItinerary').value=(p.itinerary||[]).map(x=>`${x.title||''} | ${x.text||x.description||''} | ${x.meal||x.meals||''}`).join('\n');$('#pInclusions').value=(p.inclusions||[]).join('\n');$('#pExclusions').value=(p.exclusions||[]).join('\n');$('#pTerms').value=(p.terms||[]).join('\n');resetDraft('package',p.cover_path,p.image_paths);scrollTo({top:0,behavior:'smooth'})}
+function editVisa(id){const v=data.visa_cards.find(x=>x.id===id);if(!v)return;edit.visa=id;$('#visaFormTitle').textContent='Edit visa card';$('#vCountry').value=v.country||'';$('#vFlag').value=v.flag||'';$('#vGroup').value=v.group_name||'';$('#vType').value=v.type||'';$('#vValidity').value=v.validity||'';$('#vFee').value=v.fee||'';$('#vDateLabel').value=v.date_label||'';$('#vDeadline').value=v.deadline||'';$('#vDesc').value=v.description||'';$('#vDocs').value=(v.documents||[]).join('\n');resetDraft('visa',v.cover_path,v.detail_paths);scrollTo({top:0,behavior:'auto'})}
+function editPackage(id){const p=data.packages.find(x=>x.id===id);if(!p)return;edit.package=id;$('#packageFormTitle').textContent='Edit package';$('#pTitle').value=p.title||'';$('#pTag').value=p.tag||'';$('#pDestination').value=p.destination||'';$('#pDuration').value=p.duration||'';$('#pSummary').value=p.summary||'';$('#pHighlights').value=(p.highlights||[]).join('\n');$('#pItinerary').value=(p.itinerary||[]).map(x=>`${x.title||''} | ${x.text||x.description||''} | ${x.meal||x.meals||''}`).join('\n');$('#pInclusions').value=(p.inclusions||[]).join('\n');$('#pExclusions').value=(p.exclusions||[]).join('\n');$('#pTerms').value=(p.terms||[]).join('\n');resetDraft('package',p.cover_path,p.image_paths);scrollTo({top:0,behavior:'auto'})}
 document.addEventListener('contextmenu',e=>{if(e.target.closest('img'))e.preventDefault()});
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.mediaKind){removeDraftMedia(b.dataset.mediaKind,b.dataset.mediaRole,Number(b.dataset.mediaIndex||0),b.dataset.mediaPending==='1');return;}for(const [attr,fn] of [['vup',()=>reorderVisa(b.dataset.vup,-1)],['vdown',()=>reorderVisa(b.dataset.vdown,1)],['pup',()=>reorder('packages',b.dataset.pup,-1)],['pdown',()=>reorder('packages',b.dataset.pdown,1)],['gup',()=>reorder('visa_groups',b.dataset.gup,-1)],['gdown',()=>reorder('visa_groups',b.dataset.gdown,1)]])if(b.dataset[attr]!==undefined)return fn();if(b.dataset.vedit)return editVisa(b.dataset.vedit);if(b.dataset.pedit)return editPackage(b.dataset.pedit);for(const [attr,table] of [['vdel','visa_cards'],['pdel','packages'],['gdel','visa_groups'],['fdel','feedback']])if(b.dataset[attr]){if(confirm('Delete this item?')){await call('delete',{table,id:b.dataset[attr]});await refresh()}return}});
 

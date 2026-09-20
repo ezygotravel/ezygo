@@ -1,6 +1,6 @@
-const CACHE='ezygo-v15';
-const MEDIA_CACHE='ezygo-media-v15';
-const CORE=['/','/index.html','/config.js?v=15','/app.js?v=15','/manifest.webmanifest','/favicon.ico','/icon-192.png','/icon-512.png','/logo.png'];
+const CACHE='ezygo-v16';
+const MEDIA_CACHE='ezygo-media-v16';
+const CORE=['/','/index.html','/config.js?v=16','/saved-packages.js?v=16','/app.js?v=16','/manifest.webmanifest','/favicon.ico','/icon-192.png','/icon-512.png','/logo.png'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));

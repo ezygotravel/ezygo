@@ -1,3 +1,9 @@
+EzyGo v16 (20 Sep 2026)
+- Added today's 4 saved packages
+- Package rates remain hidden; customer sees Ask for price
+- Removed smooth scroll behavior
+- Faster thumbnail-first image loading + v16 cache refresh
+
 EZYGO - CURRENT DEPLOYMENT NOTES
 
 1. Upload the CONTENTS of this folder to the GitHub repository root.
