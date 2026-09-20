@@ -1,5 +1,5 @@
-const CACHE='ezygo-v15-fast';
-const MEDIA_CACHE='ezygo-media-v15-fast';
+const CACHE='ezygo-v13';
+const MEDIA_CACHE='ezygo-media-v13';
 const CORE=['/','/index.html','/config.js','/app.js','/manifest.webmanifest','/favicon.ico','/icon-192.png','/icon-512.png','/logo.png'];
 
 self.addEventListener('install',e=>{
