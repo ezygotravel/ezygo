@@ -8,8 +8,6 @@ let mediaDraft={
   package:{cover:'',images:[],newCover:null,newImages:[]}
 };
 const endpoint='/api/admin';
-const SAVED_PACKAGE_SEED_ID=window.EZYGO_PACKAGE_SEED_ID||'__ezygo_packages_20260920_v16__';
-const SAVED_PACKAGES=Array.isArray(window.EZYGO_SAVED_PACKAGES)?window.EZYGO_SAVED_PACKAGES:[];
 let busyCount=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const cleanGroupName=v=>String(v||'').replace(/^[\s🌏🌍]+/u,'').trim();
@@ -17,8 +15,9 @@ const lines=id=>$(id).value.split('\n').map(x=>x.trim()).filter(Boolean);
 const mediaUrl=p=>{
   if(!p)return'';
   const raw=String(p).trim();
-  if(raw.startsWith('local:'))return raw.slice(6);
-  if(raw.startsWith('/assets/'))return raw;
+  const preferWebp=value=>value.replace(/\.(?:jpe?g)$/i,'.webp');
+  if(raw.startsWith('local:'))return preferWebp(raw.slice(6));
+  if(raw.startsWith('/assets/'))return preferWebp(raw);
   if(/^https?:\/\//i.test(raw))return raw;
   return `${window.EZYGO_CONFIG.SUPABASE_URL}/storage/v1/object/public/${window.EZYGO_CONFIG.STORAGE_BUCKET}/${raw.replace(/^\/+/, '')}`;
 };
@@ -66,7 +65,7 @@ async function call(action,payload={}){
     throw err;
   }finally{ clearTimeout(timer); setGlobalBusy(false); }
 }
-async function fileData(file){if(!file)return null;const objectUrl=URL.createObjectURL(file);try{const img=await new Promise((res,rej)=>{const i=new Image;i.onload=()=>res(i);i.onerror=rej;i.src=objectUrl});let w=img.width,h=img.height,max=1400;if(Math.max(w,h)>max){const scale=max/Math.max(w,h);w=Math.round(w*scale);h=Math.round(h*scale)}const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(img,0,0,w,h);return canvas.toDataURL('image/jpeg',.8)}finally{URL.revokeObjectURL(objectUrl)}}
+async function fileData(file){if(!file)return null;const objectUrl=URL.createObjectURL(file);try{const img=await new Promise((res,rej)=>{const i=new Image;i.onload=()=>res(i);i.onerror=rej;i.src=objectUrl});let w=img.width,h=img.height,max=1400;if(Math.max(w,h)>max){const scale=max/Math.max(w,h);w=Math.round(w*scale);h=Math.round(h*scale)}const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(img,0,0,w,h);return canvas.toDataURL('image/webp',.78)}finally{URL.revokeObjectURL(objectUrl)}}
 async function upload(file,folder){if(!file)return'';const dataUrl=await fileData(file);return (await call('upload',{folder,name:file.name,dataUrl})).path}
 async function uploadMany(files,folder){const input=[...files];const out=new Array(input.length);let cursor=0;const worker=async()=>{while(cursor<input.length){const i=cursor++;out[i]=await upload(input[i],folder)}};await Promise.all(Array.from({length:Math.min(3,input.length)},worker));return out}
 function revokePending(item){if(item?.url?.startsWith('blob:'))URL.revokeObjectURL(item.url)}
@@ -110,22 +109,7 @@ async function tryAutoLogin(){
   try{ await showAdmin(); }
   catch(e){ sessionStorage.removeItem('ezygo_admin_id'); adminId=''; openLoginView(); setLoginStatus('Please log in again. '+(e.message||''),'error'); }
 }
-async function seedSavedPackagesIfNeeded(){
-  if(!SAVED_PACKAGES.length)return false;
-  if((data.packages||[]).some(p=>String(p.id)===SAVED_PACKAGE_SEED_ID))return false;
-  const ids=new Set((data.packages||[]).map(p=>String(p.id||'')));
-  const titles=new Set((data.packages||[]).map(p=>String(p.title||'').trim().toLowerCase()));
-  let next=(data.packages||[]).reduce((m,p)=>Math.max(m,Number(p.sort_order)||0),-1)+1;
-  for(const pkg of SAVED_PACKAGES){
-    const key=String(pkg.title||'').trim().toLowerCase();
-    if(ids.has(String(pkg.id))||(key&&titles.has(key)))continue;
-    const record={id:pkg.id,title:pkg.title,tag:pkg.tag||'Travel package',destination:pkg.destination||'',duration:pkg.duration||'',price:'Ask for price',summary:pkg.summary||'',highlights:pkg.highlights||[],itinerary:pkg.itinerary||[],inclusions:pkg.inclusions||[],exclusions:pkg.exclusions||[],terms:pkg.terms||[],cover_path:pkg.cover_path||'',image_paths:pkg.image_paths||[],sort_order:next++,active:true};
-    await call('upsert',{table:'packages',record});
-  }
-  await call('upsert',{table:'packages',record:{id:SAVED_PACKAGE_SEED_ID,title:'EzyGo package import marker',tag:'system',destination:'',duration:'',price:'Ask for price',summary:'',highlights:[],itinerary:[],inclusions:[],exclusions:[],terms:[],cover_path:'',image_paths:[],sort_order:999999,active:true}});
-  return true;
-}
-async function refresh(){let j=await call('list');data=j.data;if(await seedSavedPackagesIfNeeded()){j=await call('list');data=j.data}data.packages=(data.packages||[]).filter(p=>String(p.id)!==SAVED_PACKAGE_SEED_ID);renderAll()}
+async function refresh(){const j=await call('list');data=j.data;renderAll()}
 function renderAll(){renderGroups();renderVisas();renderPackages();renderFeedback()}
 function renderGroups(){
   const opts=data.visa_groups.length?data.visa_groups.map(g=>`<option value="${esc(g.name)}">${esc(cleanGroupName(g.name))}</option>`).join(''):'<option value="">Create a visa section first</option>';
