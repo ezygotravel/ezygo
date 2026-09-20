@@ -1,4 +1,4 @@
-const safeTables = new Set(['visa_groups', 'visa_cards', 'packages', 'feedback']);
+const safeTables = new Set(['visa_groups', 'visa_cards', 'packages', 'galleries', 'feedback']);
 
 const slug = (value) => String(value || 'file')
   .toLowerCase()
@@ -143,13 +143,14 @@ export async function onRequest(context) {
     }
 
     if (body.action === 'list') {
-      const [visa_groups, visa_cards, packages, feedback] = await Promise.all([
+      const [visa_groups, visa_cards, packages, galleries, feedback] = await Promise.all([
         req('/rest/v1/visa_groups?select=*&order=sort_order.asc'),
         req('/rest/v1/visa_cards?select=*&order=sort_order.asc'),
         req('/rest/v1/packages?select=*&order=sort_order.asc'),
+        req('/rest/v1/galleries?select=*&order=sort_order.asc'),
         req('/rest/v1/feedback?select=*&order=created_at.desc')
       ]);
-      return json({ data: { visa_groups, visa_cards, packages, feedback } });
+      return json({ data: { visa_groups, visa_cards, packages, galleries, feedback } });
     }
 
     if (body.action === 'upsert') {
@@ -173,9 +174,9 @@ export async function onRequest(context) {
       if (!safeTables.has(table)) return json({ error: 'Invalid table' }, 400);
       if (!body.id) return json({ error: 'Missing id' }, 400);
 
-      // When an entire visa/package item is deleted, remove its
+      // When an entire visa/package/gallery item is deleted, remove its
       // Supabase Storage files first so no orphan media is left behind.
-      if (['visa_cards', 'packages'].includes(table)) {
+      if (['visa_cards', 'packages', 'galleries'].includes(table)) {
         const fields = table === 'visa_cards'
           ? 'cover_path,detail_paths'
           : 'cover_path,image_paths';
@@ -226,7 +227,7 @@ export async function onRequest(context) {
 
     if (body.action === 'set_media') {
       const table = body.table;
-      if (!['visa_cards', 'packages'].includes(table)) {
+      if (!['visa_cards', 'packages', 'galleries'].includes(table)) {
         return json({ error: 'Invalid media table' }, 400);
       }
       const id = String(body.id || '').trim();
@@ -236,6 +237,7 @@ export async function onRequest(context) {
       const imagePaths = Array.isArray(body.imagePaths) ? body.imagePaths.map(String) : [];
       let patch;
       if (table === 'visa_cards') patch = { cover_path: coverPath, detail_paths: imagePaths, updated_at: new Date().toISOString() };
+      else if (table === 'packages') patch = { cover_path: coverPath, image_paths: imagePaths, updated_at: new Date().toISOString() };
       else patch = { cover_path: coverPath, image_paths: imagePaths, updated_at: new Date().toISOString() };
 
       await req(`/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
