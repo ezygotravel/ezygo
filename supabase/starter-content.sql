@@ -8,9 +8,9 @@ on conflict (id) do update set public = true;
 -- If an image is later changed in Admin, the replacement is uploaded to Supabase Storage.
 begin;
 grant usage on schema public to anon, service_role;
-grant select on public.visa_groups, public.visa_cards, public.packages, public.galleries to anon;
+grant select on public.visa_groups, public.visa_cards, public.packages to anon;
 grant insert on public.feedback to anon;
-grant select, insert, update, delete on public.visa_groups, public.visa_cards, public.packages, public.galleries, public.feedback to service_role;
+grant select, insert, update, delete on public.visa_groups, public.visa_cards, public.packages, public.feedback to service_role;
 insert into public.visa_groups(id,name,sort_order,active) values ('top-countries','🌏 TOP COUNTRIES',0,true) on conflict(id) do update set name=excluded.name,sort_order=excluded.sort_order,active=true;
 insert into public.visa_groups(id,name,sort_order,active) values ('asia-popular','🌏 ASIA & POPULAR DESTINATIONS',1,true) on conflict(id) do update set name=excluded.name,sort_order=excluded.sort_order,active=true;
 insert into public.visa_groups(id,name,sort_order,active) values ('middle-east-africa','🌍 MIDDLE EAST & AFRICA',2,true) on conflict(id) do update set name=excluded.name,sort_order=excluded.sort_order,active=true;
