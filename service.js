@@ -1,1 +1,0 @@
-(() => {'use strict';const {$,reveal}=window.EzyCommon;function updateBack(){const b=$('#backBtn');if(b)b.classList.toggle('is-hidden',window.scrollY<=80)}document.addEventListener('DOMContentLoaded',()=>{reveal();updateBack();window.addEventListener('scroll',updateBack,{passive:true});$('#backBtn').onclick=()=>window.scrollTo({top:0,behavior:'smooth'})})})();
