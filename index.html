@@ -12,61 +12,583 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="EzyGo Travels">
+
 <link rel="dns-prefetch" href="//eqtitceuapjuwockosnm.supabase.co">
 <link rel="preconnect" href="https://eqtitceuapjuwockosnm.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="site.css?v=15">
+<style>
+:root{--ink:#151515;--muted:#7d8188;--line:#e6e7ea;--soft:#f6f7f8;--page:1120px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#fff;color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}button,input,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}img{display:block}.page{max-width:var(--page);margin:auto}
+/* header */
+.top{padding:20px 14px 0}.toprow{height:52px;display:grid;grid-template-columns:34px 1fr 34px;align-items:center}.back{border:0;background:transparent;padding:0;width:34px;height:34px;display:grid;place-items:center;color:#1c1c1f}.back svg{width:23px;height:23px}.logo{height:43px;width:auto;max-width:190px;object-fit:contain;justify-self:center}
+.nav{display:flex;justify-content:center;gap:6px;margin:23px auto 18px}.navbtn{border:0;background:transparent;color:#92959a;display:flex;align-items:center;gap:6px;padding:7px 10px 10px;position:relative;font-size:12.5px;font-weight:600}.navbtn svg{width:16px;height:16px;stroke-width:1.9}.navbtn.active{color:#111}.navbtn.active:after{content:'';position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:99px;background:#111}
+.tools{display:grid;grid-template-columns:1fr 50px;gap:10px;align-items:center;padding:0 6px}.search{height:50px;border:1px solid var(--line);border-radius:999px;padding:0 17px;display:flex;align-items:center;gap:10px;background:#fff;box-shadow:0 7px 22px rgba(0,0,0,.025)}.search svg{width:19px;height:19px;color:#777}.search input{border:0;outline:0;width:100%;font-size:14.5px;background:transparent}.search input::placeholder{color:#8d9095}.filter{width:50px;height:50px;border:1px solid var(--line);border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 7px 22px rgba(0,0,0,.025)}.filter-lines{width:23px;display:grid;gap:5px;justify-items:start}.filter-lines i{display:block;height:2px;background:#171717;border-radius:4px}.filter-lines i:nth-child(1){width:23px}.filter-lines i:nth-child(2){width:17px}.filter-lines i:nth-child(3){width:11px}
+/* explore cards tuned to reference */
+.grid{padding:34px 13px 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;row-gap:44px}.card{min-width:0}.poster{position:relative;overflow:hidden;border-radius:29px;aspect-ratio:.625;background:#ddd}.poster img{width:100%;height:100%;object-fit:cover}.poster:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.01) 36%,rgba(0,0,0,.10) 58%,rgba(0,0,0,.90) 100%)}.identity{position:absolute;z-index:2;left:10px;right:10px;bottom:88px;height:86px;color:#fff}.flagcircle{position:absolute;left:50%;transform:translateX(-50%);bottom:50px;width:35px;height:35px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.18);font-family:Inter,sans-serif;font-size:20px;line-height:1}.country{position:absolute;left:0;right:0;bottom:0;min-height:42px;display:flex;align-items:flex-end;justify-content:center;text-align:center;font-family:'DM Serif Display',Georgia,serif;text-transform:uppercase;font-size:20px;line-height:.98;letter-spacing:.018em;text-shadow:0 2px 8px rgba(0,0,0,.28)}.cardmeta{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:0 14px 17px;color:#fff}.cardmeta:before{content:'';display:block;height:1px;background:rgba(255,255,255,.19);margin-bottom:15px}.metagrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.label{display:block;color:rgba(255,255,255,.57);text-transform:uppercase;letter-spacing:.17em;font-size:9.5px;font-weight:700;margin-bottom:7px}.value{display:block;color:#fff;font-size:10.5px;text-transform:uppercase;letter-spacing:.055em;font-weight:700;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25;overflow-wrap:anywhere}.below{padding:13px 4px 0}.below .line1{font-size:12px;color:#7f8389;line-height:1.3}.below .line2{font-size:12.7px;color:#151515;font-weight:700;line-height:1.35;margin-top:3px}.below .fee{font-size:14px;color:#74787e;font-weight:700;margin-top:7px}.hoverpeek{display:none}
+/* services */
+.services{display:none;padding:26px 14px 16px}.servicesList{max-width:760px;margin:auto;display:grid;gap:11px}.service{border:1px solid var(--line);border-radius:21px;padding:17px;display:flex;gap:13px;align-items:flex-start}.serviceIcon{width:42px;height:42px;border-radius:13px;background:var(--soft);display:grid;place-items:center;flex:none}.serviceIcon svg{width:21px;height:21px}.service h3{margin:0 0 5px;font-size:15px}.service p{margin:0;color:#7b7f85;font-size:13px;line-height:1.55}
+
+/* destination detail */
+.cardDetail{display:none;padding:20px 14px 38px}.packageDetail{max-width:780px;margin:auto}.detailSlider{position:relative;border-radius:25px;overflow:hidden;background:#f2f2f3}.detailTrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.detailTrack::-webkit-scrollbar{display:none}.detailSlide{flex:0 0 100%;scroll-snap-align:start}.detailSlide img{width:100%;aspect-ratio:1.18/1;object-fit:cover}.detailDots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:6px;pointer-events:none}.detailDot{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.55);box-shadow:0 1px 4px rgba(0,0,0,.25)}.detailDot.active{width:18px;background:#fff}.packageTop{padding:24px 2px 0}.packageEyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#92959a;font-weight:700}.packageTop h1{font-size:30px;letter-spacing:-.04em;margin:8px 0 9px}.packageTop p{font-size:14px;color:#73777d;line-height:1.72;margin:0}.packageFacts{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:20px}.fact{border:1px solid var(--line);border-radius:16px;padding:13px;background:#fff}.fact small{display:block;color:#95989d;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.fact strong{display:block;font-size:12px;line-height:1.35}.detailSection{margin-top:28px;padding-top:25px;border-top:1px solid var(--line)}.detailSection h2{font-size:18px;margin:0 0 14px;letter-spacing:-.02em}.docList{display:grid;gap:10px}.docItem{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#555a60;line-height:1.55}.docTick{width:20px;height:20px;border-radius:50%;background:#f4f5f6;display:grid;place-items:center;flex:none;margin-top:1px}.docTick svg{width:12px;height:12px}.enquire{width:100%;height:52px;border:0;border-radius:15px;background:#111;color:#fff;font-weight:700;font-size:14px;margin-top:30px}.legalRow{display:flex;justify-content:flex-start;gap:16px;align-items:center;flex-wrap:wrap;margin-top:34px;padding-top:22px;border-top:1px solid var(--line);font-size:11px;font-weight:400;color:#96999e;text-align:left}.legalRow a{color:#777b81;font-weight:400}.fixedCopyright{margin-top:58px;text-align:center;font-size:13.5px;font-weight:400;color:#85898f;line-height:1.5;width:100%}.footerContext{display:block}
+@media(max-width:480px){.cardDetail{padding:18px 11px 34px}.detailSlider{border-radius:22px}.detailSlide img{aspect-ratio:1.12/1}.packageTop{padding-top:20px}.packageTop h1{font-size:27px}.packageFacts{gap:7px}.fact{padding:11px 10px}.fact strong{font-size:11px}.detailSection{margin-top:24px;padding-top:22px}}
+
+/* reviews/footer */
+footer{padding:58px 14px 34px}.footerin{max-width:720px;margin:auto;border-top:1px solid var(--line);padding-top:42px}.footerlogo{height:38px;width:auto}.footer-copy{color:#74787d;font-size:13px;line-height:1.8;max-width:540px;margin:16px 0 0}.footer-contact{color:#74787d;font-size:13px;margin:11px 0 0}
+.review-section{margin-top:46px}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:18px}.sectionHead h3{margin:0;font-size:19px;letter-spacing:-.025em}.sectionHead span{font-size:11px;color:#999}.reviewTrack{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px;scrollbar-width:none}.reviewTrack::-webkit-scrollbar{display:none}.reviewCard{scroll-snap-align:start;flex:0 0 88%;border:1px solid var(--line);border-radius:22px;padding:19px;background:#fff;box-shadow:0 8px 20px rgba(0,0,0,.025)}.reviewHead{display:flex;align-items:center;gap:11px;margin-bottom:13px}.reviewAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#f1f2f4;color:#444;font-size:13px;font-weight:700;flex:none}.reviewMeta strong{display:block;font-size:14px;margin:0 0 3px}.reviewMeta small{display:block;color:#9a9da2;font-size:10.5px}.reviewStars{font-size:12px;letter-spacing:1px;margin-bottom:11px}.reviewCard p{margin:0;color:#666b72;font-size:12.2px;line-height:1.68;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}.reviewLink{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:11.5px;font-weight:700}.reviewLink svg{width:14px;height:14px}
+.feedback{margin-top:46px;border-top:1px solid var(--line);padding-top:38px}.feedback h3{font-size:19px;margin:0 0 6px}.feedback p{font-size:12.5px;color:#7b7f85;line-height:1.6;margin:0}.form{display:grid;gap:10px;margin-top:16px}.formrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{border:1px solid var(--line);border-radius:15px;padding:13px 14px;outline:0;font-size:13px;background:#fff}textarea.field{min-height:105px;resize:vertical}.send{height:48px;border:0;border-radius:15px;background:#111;color:#fff;font-weight:700;font-size:13px}
+.accordions{margin-top:46px;border-top:1px solid var(--line)}.acc{border-bottom:1px solid var(--line)}.accBtn{width:100%;border:0;background:#fff;padding:20px 0;display:flex;align-items:center;justify-content:space-between;text-align:left;color:#62666c;font-weight:700;font-size:14px}.accBtn svg{width:18px;height:18px;transition:.2s}.acc.open .accBtn svg{transform:rotate(180deg)}.accBody{display:none;padding:0 0 18px;color:#7a7e84;font-size:12.5px;line-height:1.7}.acc.open .accBody{display:block}.accBody a{text-decoration:underline;text-underline-offset:3px}
+.contact{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border:0;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,0,0,.18);z-index:50}.contact svg{width:24px;height:24px}
+/* filter */
+.modal{position:fixed;inset:0;background:rgba(10,10,12,.28);display:none;align-items:flex-end;z-index:70}.modal.open{display:flex}.sheet{width:100%;background:#fff;border-radius:27px 27px 0 0;padding:22px 18px 26px}.sheetTop{display:flex;align-items:center;justify-content:space-between}.sheetTop h3{margin:0;font-size:19px}.sheetTop button{border:0;background:none;font-size:22px}.group{margin-top:17px}.group h4{font-size:11px;color:#7c8086;margin:0 0 9px;text-transform:uppercase;letter-spacing:.09em}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-size:12.5px;color:#5f6368}.chip.active{background:#111;color:#fff;border-color:#111}.filterActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px}.clear,.apply{height:46px;border-radius:14px;font-weight:700;font-size:13px}.clear{border:1px solid var(--line);background:white}.apply{border:0;background:#111;color:white}.empty{grid-column:1/-1;padding:40px 0;text-align:center;color:#8b8f94;font-size:14px}
+@media(min-width:700px){.top{padding:28px 22px 0}.toprow{height:60px}.logo{height:48px}.tools{padding:0 12px}.grid{grid-template-columns:repeat(4,minmax(0,1fr));padding:32px 18px 8px;column-gap:14px;row-gap:32px}.poster{border-radius:27px}.country{font-size:18px}.feedback{max-width:620px}.reviewCard{flex-basis:46%}.sheet{max-width:460px;margin:auto;border-radius:27px}.modal{align-items:center}}
+@media(max-width:480px){.top{padding:18px 11px 0}.toprow{height:48px}.logo{height:39px;max-width:160px}.nav{margin-top:19px;margin-bottom:18px;gap:1px}.navbtn{padding:7px 8px 10px;font-size:12px;gap:5px}.navbtn svg{width:15px;height:15px}.tools{grid-template-columns:1fr 48px;gap:9px;padding:0 3px}.search{height:48px;padding:0 15px}.search input{font-size:14px}.filter{width:48px;height:48px}.grid{padding:30px 11px 10px;column-gap:11px;row-gap:42px}.poster{border-radius:27px}.identity{bottom:86px;height:84px}.flagcircle{bottom:49px;width:34px;height:34px;font-size:19px}.country{font-size:19px;min-height:41px}.cardmeta{padding:0 13px 16px}.label{font-size:9px}.value{font-size:10px}.below{padding-top:12px}.below .line1{font-size:11.2px}.below .line2{font-size:12px}.below .fee{font-size:13.5px}.services{padding-left:11px;padding-right:11px}.formrow{grid-template-columns:1fr}.reviewCard{flex-basis:88%}footer{padding-left:11px;padding-right:11px}}
+
+/* v8 spacing + exact logo refinements */
+.toprow{margin-bottom:20px}
+.back.is-hidden{visibility:hidden;pointer-events:none}
+.logo{height:36px;max-width:164px}
+.nav{margin-top:0;margin-bottom:22px}
+footer{padding:68px 20px 34px}
+.footerin{max-width:700px;padding-top:48px}
+.footerlogo{height:32px}
+.footer-copy{margin-top:20px;line-height:1.85}
+.footer-contact{margin-top:13px}
+.review-section{margin-top:54px}
+.sectionHead{margin-bottom:22px}
+.reviewTrack{gap:16px;padding:4px 2px 16px}
+.reviewCard{padding:21px 20px;border-radius:24px}
+.feedback{margin-top:56px;padding-top:44px}
+.form{margin-top:20px;gap:12px}
+.formrow{gap:12px}
+.field{padding:14px 15px}
+.send{margin-top:2px}
+.accordions{margin-top:56px}
+.accBtn{padding:22px 0}
+.accBody{padding-bottom:22px}
+@media(min-width:700px){.toprow{margin-bottom:24px}.logo{height:40px;max-width:185px}.nav{margin-bottom:24px}.footerlogo{height:34px}footer{padding-left:28px;padding-right:28px}}
+@media(max-width:480px){.fixedCopyright{margin-top:54px;font-size:13.5px}.top{padding-top:20px}.toprow{height:46px;margin-bottom:22px}.logo{height:32px;max-width:145px}.nav{margin-top:0;margin-bottom:21px}.navbtn{padding-top:6px}.services{padding-left:16px;padding-right:16px}footer{padding:62px 18px 28px}.footerin{padding-top:44px}.footerlogo{height:30px}.footer-copy{margin-top:18px}.review-section{margin-top:50px}.feedback{margin-top:52px;padding-top:40px}.accordions{margin-top:52px}.reviewCard{padding:20px 18px}}
+
+/* desktop card refinement — mobile rules above remain unchanged */
+@media (min-width:900px){
+  .tools{max-width:1032px;margin:0 auto;padding:0 8px}
+  .grid{max-width:1032px;margin:0 auto;grid-template-columns:repeat(4,minmax(0,1fr));padding:38px 8px 20px;column-gap:24px;row-gap:42px}
+  .card{width:100%;cursor:pointer;transition:transform .22s ease}
+  .card:hover{transform:translateY(-5px)}
+  .poster{width:100%;border-radius:30px;aspect-ratio:.635;box-shadow:0 14px 32px rgba(16,24,40,.09);transition:box-shadow .22s ease}
+  .card:hover .poster{box-shadow:0 20px 44px rgba(16,24,40,.16)}
+  .poster img{transition:transform .42s ease,filter .32s ease}
+  .card:hover .poster img{transform:scale(1.045);filter:saturate(1.04)}
+  .poster:after{background:linear-gradient(180deg,rgba(0,0,0,.06) 18%,rgba(0,0,0,.11) 42%,rgba(0,0,0,.38) 68%,rgba(0,0,0,.92) 100%);transition:background .25s ease}
+  .card:hover .poster:after{background:linear-gradient(180deg,rgba(0,0,0,.12) 12%,rgba(0,0,0,.22) 42%,rgba(0,0,0,.53) 68%,rgba(0,0,0,.94) 100%)}
+  .identity{left:12px;right:12px;bottom:91px;height:100px;z-index:4}
+  .flagcircle{bottom:57px;width:40px;height:40px;font-size:23px;z-index:5;background:#fff;box-shadow:0 5px 15px rgba(0,0,0,.28)}
+  .country{font-size:20px;min-height:48px;align-items:flex-end;text-shadow:0 2px 12px rgba(0,0,0,.72)}
+  .cardmeta{padding:0 16px 18px;z-index:4}
+  .cardmeta:before{background:rgba(255,255,255,.32)}
+  .label{color:rgba(255,255,255,.76);font-size:9.5px}
+  .value{font-size:10.5px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .below{width:100%;padding:14px 0 0;margin:0}
+  .below .line1,.below .line2,.below .fee{width:100%;margin-left:0;margin-right:0}
+  .below .line1{font-size:12px}
+  .below .line2{font-size:13px;margin-top:4px}
+  .below .fee{font-size:14px;margin-top:8px}
+  .hoverpeek{display:flex;position:absolute;left:18px;right:18px;top:22px;z-index:5;flex-direction:column;gap:4px;color:#fff;opacity:0;transform:translateY(-8px);transition:opacity .22s ease,transform .22s ease;pointer-events:none}
+  .card:hover .hoverpeek{opacity:1;transform:translateY(0)}
+  .hoverpeek span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.8);font-weight:700}
+  .hoverpeek b{font-size:13px;font-weight:600}
+  .hoverpeek small{font-size:10.5px;color:rgba(255,255,255,.82);margin-top:2px}
+}
+@media (min-width:1180px){
+  .tools,.grid{max-width:1060px}
+  .grid{column-gap:26px}
+}
+
+
+/* desktop full-width refinement + stable color emoji */
+.flagcircle{font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif!important;font-variant-emoji:emoji;color:initial;background:rgba(255,255,255,.96)}
+@media (min-width:900px){
+  :root{--page:none}
+  .page{width:100%;max-width:none}
+  .top{padding-left:clamp(36px,5vw,86px);padding-right:clamp(36px,5vw,86px)}
+  .toprow,.nav,.tools{max-width:1500px;margin-left:auto;margin-right:auto}
+  .tools{padding-left:0;padding-right:0}
+  .grid{width:calc(100% - clamp(56px,7vw,112px));max-width:1600px;margin:0 auto;padding:38px 0 24px;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(18px,1.8vw,30px);row-gap:46px}
+  .card{width:100%;transition:transform .24s ease}
+  .poster{aspect-ratio:.69;border-radius:30px;box-shadow:0 14px 34px rgba(14,18,24,.10);transition:transform .28s ease,box-shadow .28s ease}
+  .poster:after{background:linear-gradient(180deg,rgba(0,0,0,.08) 20%,rgba(0,0,0,.17) 52%,rgba(0,0,0,.88) 100%)}
+  .identity{bottom:94px;height:96px}
+  .flagcircle{bottom:56px;width:39px;height:39px;font-size:23px;box-shadow:0 4px 12px rgba(0,0,0,.24)}
+  .country{font-size:clamp(19px,1.55vw,24px);min-height:44px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+  .cardmeta{padding:0 16px 19px}
+  .label{font-size:10px}.value{font-size:11px}
+  .below{width:100%;padding:14px 2px 0;margin:0}
+  .below .line1{font-size:12.5px}.below .line2{font-size:13.5px}.below .fee{font-size:14.5px}
+  .card:hover{transform:translateY(-5px)}
+  .card:hover .poster{transform:scale(1.012);box-shadow:0 20px 46px rgba(14,18,24,.16)}
+  .hoverpeek{display:flex;position:absolute;z-index:3;left:14px;right:14px;top:14px;padding:12px 13px;border-radius:16px;background:rgba(12,12,14,.72);backdrop-filter:blur(10px);color:#fff;flex-direction:column;gap:3px;opacity:0;transform:translateY(-5px);transition:.22s ease;pointer-events:none;border:1px solid rgba(255,255,255,.14)}
+  .hoverpeek span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+  .hoverpeek b{font-size:12px;font-weight:600}.hoverpeek small{font-size:10px;color:rgba(255,255,255,.78)}
+  .card:hover .hoverpeek{opacity:1;transform:translateY(0)}
+  .services,.cardDetail{padding-left:clamp(36px,5vw,86px);padding-right:clamp(36px,5vw,86px)}
+  .servicesList,.packageDetail{max-width:1280px}
+  footer{padding-left:clamp(36px,5vw,86px);padding-right:clamp(36px,5vw,86px)}
+  .footerin{max-width:1120px}
+}
+@media (min-width:1280px){
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr));max-width:1680px}
+}
+@media (min-width:1700px){
+  .grid{grid-template-columns:repeat(6,minmax(0,1fr));max-width:1840px}
+}
+
+/* desktop spacing unification — keeps the approved mobile layout unchanged */
+@media (min-width:900px){
+  :root{--desktop-gutter:clamp(44px,5vw,86px);--desktop-max:1480px}
+  .top{padding-left:var(--desktop-gutter);padding-right:var(--desktop-gutter)}
+  .toprow,.nav,.tools{width:min(var(--desktop-max),calc(100vw - (var(--desktop-gutter) * 2)));max-width:none;margin-left:auto;margin-right:auto}
+  .tools{padding-left:0;padding-right:0}
+  .grid{width:min(var(--desktop-max),calc(100vw - (var(--desktop-gutter) * 2)));max-width:none;margin:0 auto;padding:40px 0 26px;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(22px,2vw,30px);row-gap:48px}
+  .card{width:100%;min-width:0}
+  .poster,.below{width:100%}
+  .below{padding-left:0;padding-right:0}
+  .services,.cardDetail,footer{padding-left:var(--desktop-gutter);padding-right:var(--desktop-gutter)}
+  .servicesList,.packageDetail,.footerin{width:min(var(--desktop-max),100%);max-width:none;margin-left:auto;margin-right:auto}
+}
+@media (min-width:1600px){
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr));column-gap:clamp(24px,1.6vw,32px)}
+}
+@media (min-width:2100px){
+  :root{--desktop-max:1720px}
+}
+
+/* vNext: full desktop responsive optimization */
+@media (min-width: 760px){
+  :root{--desktop-content:clamp(1040px,92vw,1760px);}
+  .page{max-width:none;width:100%;}
+  .top{width:min(var(--desktop-content),100%);margin:0 auto;padding-left:0;padding-right:0;}
+  .tools{max-width:none;width:100%;padding:0;}
+
+  /* Main destination grid: balanced desktop sizing */
+  .grid{width:min(var(--desktop-content),100%);max-width:none;margin:0 auto;padding:42px 0 30px;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(20px,1.65vw,30px);row-gap:52px;}
+  .card{width:100%;}
+  .poster{width:100%;border-radius:26px;}
+  .below{width:100%;padding-left:2px;padding-right:2px;}
+
+  /* Services: richer, less empty desktop page */
+  .services{padding:42px 0 34px;}
+  .servicesList{width:min(var(--desktop-content),100%);max-width:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
+  .service{min-height:172px;padding:26px;border-radius:24px;gap:18px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
+  .service:hover{transform:translateY(-3px);border-color:#d9dadd;box-shadow:0 14px 34px rgba(0,0,0,.055);}
+  .serviceIcon{width:52px;height:52px;border-radius:16px;}
+  .serviceIcon svg{width:25px;height:25px;}
+  .service h3{font-size:18px;margin-bottom:8px;}
+  .service p{font-size:14px;line-height:1.72;max-width:560px;}
+  .serviceMore{display:block;margin-top:13px;color:#9a9da2;font-size:11.5px;font-weight:600;letter-spacing:.015em;}
+
+  /* Destination detail: real desktop composition */
+  .cardDetail{padding:48px 0 58px;}
+  .packageDetail{width:min(1180px,calc(100vw - 96px));max-width:none;margin:0 auto;display:grid;grid-template-columns:minmax(420px,540px) minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:clamp(38px,4vw,68px);row-gap:0;align-items:start;}
+  .detailSlider{grid-column:1;grid-row:1 / span 3;width:100%;max-width:540px;border-radius:26px;position:sticky;top:28px;box-shadow:0 16px 42px rgba(0,0,0,.07);}
+  .detailTrack{width:100%;}
+  .detailSlide img{width:100%;height:clamp(390px,38vw,520px);aspect-ratio:auto;object-fit:cover;}
+  .packageTop{grid-column:2;grid-row:1;padding:10px 0 0;}
+  .packageEyebrow{font-size:12px;}
+  .packageTop h1{font-size:clamp(38px,3.3vw,54px);line-height:1.02;margin:10px 0 16px;}
+  .packageTop p{font-size:15px;line-height:1.8;max-width:650px;}
+  .packageFacts{margin-top:28px;gap:12px;}
+  .fact{padding:16px 15px;border-radius:18px;background:#fcfcfd;}
+  .fact small{font-size:9.5px;margin-bottom:7px;}
+  .fact strong{font-size:13px;}
+  .detailSection{grid-column:2;grid-row:2;margin-top:30px;padding-top:28px;}
+  .detailSection h2{font-size:20px;margin-bottom:17px;}
+  .docList{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;}
+  .docItem{font-size:13.5px;}
+  .enquire{grid-column:2;grid-row:3;width:min(100%,420px);height:54px;margin-top:32px;border-radius:16px;font-size:14px;transition:transform .2s ease,box-shadow .2s ease;}
+  .enquire:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.14);}
+}
+
+@media (min-width: 1280px){
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+}
+@media (min-width: 1500px){
+  
+}
+@media (min-width: 1840px){
+  .grid{grid-template-columns:repeat(6,minmax(0,1fr));}
+}
+@media (min-width: 2200px){
+  .grid{grid-template-columns:repeat(7,minmax(0,1fr));}
+}
+
+/* Tablet fallback for detail page */
+@media (min-width:760px) and (max-width:980px){
+  .packageDetail{width:calc(100vw - 56px);grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr);column-gap:30px;}
+  .detailSlide img{height:420px;}
+  .packageTop h1{font-size:36px;}
+  .packageFacts{grid-template-columns:1fr;}
+  .docList{grid-template-columns:1fr;}
+  .servicesList{grid-template-columns:1fr 1fr;}
+}
+
+/* Preserve approved mobile experience */
+@media (max-width:759px){
+  .serviceMore{display:none;}
+  .packageDetail{display:block;}
+}
+
+
+/* final desktop gutters + package scale + theme action */
+.enquire{background:#1798d4;color:#fff;box-shadow:0 10px 24px rgba(23,152,212,.18)}
+.enquire:hover{background:#1088c1;box-shadow:0 14px 30px rgba(23,152,212,.26)}
+@media (min-width:760px){
+  :root{--final-gutter:clamp(46px,5.5vw,104px);--final-content:1500px}
+  .top{width:min(var(--final-content),calc(100vw - (var(--final-gutter)*2)));padding-left:0;padding-right:0}
+  .toprow,.nav,.tools{width:100%;max-width:none}
+  .grid{width:min(var(--final-content),calc(100vw - (var(--final-gutter)*2)));grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(22px,2vw,32px)}
+  .services,.cardDetail,footer{padding-left:var(--final-gutter);padding-right:var(--final-gutter)}
+  .servicesList,.footerin{width:min(var(--final-content),100%)}
+  .packageDetail{width:min(1160px,calc(100vw - (var(--final-gutter)*2)))}
+  .detailSlider{max-width:500px}
+  .detailSlide img{height:clamp(360px,34vw,480px)}
+  
+}
+@media (min-width:1500px){
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  
+}
+@media (min-width:2000px){
+  :root{--final-content:1680px;--final-gutter:clamp(72px,7vw,150px)}
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+
+
+/* Visa grouping - keeps the existing card design */
+.visaGroup{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:10px 0 -18px;padding:0 2px;color:#171717;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}.visaGroup:after{content:"";height:1px;background:var(--line);flex:1}.flagcircle img{width:23px;height:23px;display:block;object-fit:contain}.detailFlag{width:32px;height:32px;border-radius:50%;background:#f5f6f7;display:grid;place-items:center;margin-bottom:12px;overflow:hidden}.detailFlag img{width:23px;height:23px;object-fit:contain}.packageTop .detailFlag+ .packageEyebrow{margin-top:0}
+@media(min-width:700px){.visaGroup{font-size:13px;margin-top:18px;margin-bottom:-10px}}
+
+/* Packages — added without changing the approved Visa / Services design */
+
+.packagesPane{display:none;padding:30px 14px 38px}
+.packagesIntro{max-width:1180px;margin:0 auto 24px}
+.packagesIntro h1{margin:0;font-size:28px;letter-spacing:-.045em}
+.packagesIntro p{margin:7px 0 0;color:#7b7f85;font-size:13px;line-height:1.7;max-width:650px}
+.packageGrid2{max-width:1180px;margin:auto;display:grid;grid-template-columns:1fr;gap:18px}
+
+.tourCard{cursor:pointer;border:1px solid var(--line);border-radius:24px;overflow:hidden;background:#fff;transition:transform .2s ease,box-shadow .2s ease}
+.tourCardMedia{position:relative;aspect-ratio:1.48/1;overflow:hidden;background:#edf0f3}
+.tourCardMedia img{width:100%;height:100%;object-fit:cover;transition:transform .32s ease}
+.tourCardMedia:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.03) 35%,rgba(0,0,0,.64) 100%)}
+.tourOverlay{position:absolute;z-index:2;left:18px;right:18px;bottom:16px;color:#fff}
+.tourOverlay span{display:block;font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.82);margin-bottom:5px}
+.tourOverlay h2{font-size:23px;margin:0;letter-spacing:-.035em}
+.tourCardBody{padding:15px 17px 18px}
+.tourCardBody>p{margin:0;color:#7d8187;font-size:12px}
+.tourCardFacts{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.tourCardFacts span{font-size:12px;color:#52565c}
+.tourCardFacts strong{font-size:12px;color:#18191b}
+
+.tourDetailPane{display:none;padding:22px 11px 50px}
+.tourDetailWrap{width:min(100%,720px);margin:auto}
+.tourHero{position:relative;border-radius:22px;overflow:hidden;background:#edf0f3;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.tourTrack{display:flex;width:100%;overflow:visible;touch-action:pan-y;will-change:transform;transform:translate3d(0,0,0)}
+.tourSlide{flex:0 0 100%;width:100%}
+.tourSlide img{display:block;width:100%;aspect-ratio:1.27/1;object-fit:cover;background:#f3f4f5;user-select:none;-webkit-user-drag:none}
+.tourDots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;align-items:center;gap:5px;z-index:4}
+.tourDot{appearance:none;border:0;padding:0;width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.62);box-shadow:0 1px 4px rgba(0,0,0,.16);transition:width .2s ease,background .2s ease}
+.tourDot.active{width:18px;background:#fff}
+
+.tourHeader{padding:22px 1px 0}
+.tourKicker{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:#1598d4}
+.tourHeader h1{font-size:29px;line-height:1.08;letter-spacing:-.047em;margin:7px 0 8px}
+.tourDestination{color:#898d93;font-size:11.5px;margin-bottom:12px}
+.tourHeaderDesc{font-size:13.5px;line-height:1.75;color:#70757b;margin:0}
+.tourFacts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:19px}
+.tourFact{border:1px solid var(--line);border-radius:16px;padding:13px 12px;background:#fff;min-height:70px}
+.tourFact small{display:block;color:#9a9da2;font-size:8px;text-transform:uppercase;letter-spacing:.13em;margin-bottom:7px}
+.tourFact strong{display:block;font-size:12.5px;line-height:1.35}
+
+.tourBlock{margin-top:26px;padding-top:25px;border-top:1px solid var(--line)}
+.tourBlock h2{font-size:17px;letter-spacing:-.025em;margin:0 0 15px}
+.highlightChips{display:flex;gap:7px;flex-wrap:wrap}
+.highlightChip{font-size:10.5px;color:#686c72;background:#f5f6f7;border-radius:999px;padding:7px 10px;line-height:1.25}
+
+.itinerary{display:grid;gap:11px}
+.dayCard{border:1px solid var(--line);border-radius:18px;padding:15px 14px;background:#fff}
+.dayTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.dayNo{font-size:9px;font-weight:800;letter-spacing:.14em;color:#1598d4}
+.dayCard h3{font-size:14px;margin:4px 0 0;letter-spacing:-.015em}
+.meal{font-size:9px;color:#92969b;background:#f6f7f8;border-radius:999px;padding:6px 9px;white-space:nowrap}
+.dayCard p{font-size:12px;color:#72777d;line-height:1.68;margin:11px 0 0}
+
+.twoLists{display:grid;grid-template-columns:1fr;gap:24px}
+.cleanList{display:grid;gap:9px}
+.cleanItem{display:flex;gap:9px;align-items:flex-start;color:#696e74;font-size:12px;line-height:1.5}
+.cleanIcon{width:19px;height:19px;border-radius:50%;background:#f3f8fa;color:#1598d4;display:grid;place-items:center;flex:none;font-size:10px;font-weight:800}
+.tourTerms{display:grid;gap:10px}
+.tourTerm{font-size:11.5px;color:#787d83;line-height:1.6;padding-left:16px;position:relative}
+.tourTerm:before{content:'';width:5px;height:5px;border-radius:50%;background:#1598d4;position:absolute;left:1px;top:.62em}
+.tourEnquire{width:100%;height:50px;border:0;border-radius:14px;background:#1d9fd8;color:#fff;font-weight:700;font-size:13px;margin-top:27px;box-shadow:0 10px 22px rgba(29,159,216,.16)}
+.tourSourceNote{display:none}
+#tourExtraSections:empty{display:none}.tourExtraList{display:grid;gap:9px}.tourExtraItem{display:flex;gap:9px;align-items:flex-start;color:#696e74;font-size:12px;line-height:1.58}.tourExtraItem:before{content:'✓';width:19px;height:19px;border-radius:50%;background:#f3f8fa;color:#1598d4;display:grid;place-items:center;flex:none;font-size:10px;font-weight:800;margin-top:1px}
+
+@media(min-width:760px){
+  .packagesPane{padding:42px 0}
+  .packagesIntro,.packageGrid2{width:min(1180px,calc(100vw - 90px));max-width:none}
+  .packageGrid2{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+  .tourCard:hover{transform:translateY(-4px);box-shadow:0 18px 42px rgba(15,20,25,.09)}
+  .tourCard:hover img{transform:scale(1.025)}
+  .tourDetailPane{padding:48px 0 66px}
+  .tourDetailWrap{width:min(1180px,calc(100vw - 90px));max-width:none;display:grid;grid-template-columns:minmax(400px,500px) minmax(0,1fr);column-gap:clamp(34px,5vw,68px);align-items:start}
+  .tourHero{position:sticky;top:24px;grid-column:1;grid-row:1 / span 8;border-radius:25px}
+  .tourSlide img{aspect-ratio:.83/1}
+  .tourHeader,.tourBlock,#tourExtraSections,.tourEnquire,.tourSourceNote{grid-column:2}
+  .tourHeader{padding-top:4px}
+  .tourHeader h1{font-size:clamp(36px,3.3vw,50px)}
+  .twoLists{grid-template-columns:1fr 1fr;gap:28px}
+  .tourEnquire{width:min(100%,420px)}
+}
+@media(min-width:1350px){.packageGrid2{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:480px){
+  .packagesPane{padding-left:11px;padding-right:11px}
+  .tourDetailPane{padding-left:10px;padding-right:10px}
+  .tourHero{border-radius:20px}
+  .tourHeader h1{font-size:28px}
+  .tourFacts{grid-template-columns:1fr 1fr}
+}
+
+/* package-tab visibility fix */
+@media(max-width:480px){
+  .nav{width:100%;display:grid;grid-template-columns:repeat(var(--nav-columns,3),minmax(0,1fr));gap:0;}
+  .navbtn{min-width:0;justify-content:center;padding:7px 2px 10px;font-size:10.8px;gap:3px;white-space:nowrap;}
+  .navbtn svg{width:14px;height:14px;flex:none;}
+  .navbtn.active:after{left:6px;right:6px;}
+}
+
+
+
+</style>
+
+<style>
+/* Requested navigation + readability refinements */
+.back{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  padding:0!important;
+}
+.back:active{transform:translateX(-1px)}
+.back.is-hidden{visibility:hidden!important;pointer-events:none!important}
+
+/* Minimal black gradient for text legibility on image cards */
+.poster:after{
+  background:linear-gradient(180deg,rgba(0,0,0,.03) 28%,rgba(0,0,0,.13) 57%,rgba(0,0,0,.66) 100%)!important;
+}
+.tourCardMedia:after{
+  background:linear-gradient(180deg,rgba(0,0,0,.025) 30%,rgba(0,0,0,.12) 58%,rgba(0,0,0,.62) 100%)!important;
+}
+.country,.cardmeta,.tourOverlay{ text-shadow:0 2px 9px rgba(0,0,0,.38) }
+
+/* Visa detail: true one-image slider */
+.detailSlider{position:relative;overflow:hidden}
+.detailTrack{
+  display:flex!important;
+  width:100%;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  touch-action:pan-y;
+  will-change:transform;
+  transform:translate3d(0,0,0);
+}
+.detailSlide{flex:0 0 100%!important;width:100%;scroll-snap-align:none!important}
+.detailSlide img{user-select:none;-webkit-user-drag:none}
+.detailDots{
+  pointer-events:auto!important;
+  align-items:center;
+  z-index:5;
+}
+.detailDot{
+  appearance:none;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  transition:width .2s ease,background .2s ease,opacity .2s ease;
+}
+.detailDot.active{width:18px}
+
+/* Compact blue visa facts */
+.packageFacts{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.fact.blueFact{
+  min-width:0;
+  border:1px solid #d9edf8!important;
+  background:#f5fbff!important;
+  color:#126f9d;
+  box-shadow:none;
+}
+.fact.blueFact small{color:#5ba8ce!important}
+.fact.blueFact strong{color:#126f9d!important;overflow-wrap:anywhere}
+.factAction{
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+}
+.factAction:active{transform:scale(.985)}
+
+/* Loading cards: never leave the visa area visually empty */
+.skeletonCard{min-width:0}
+.skeletonPoster{
+  width:100%;
+  aspect-ratio:.625;
+  border-radius:29px;
+  background:#eef1f4;
+}
+.skeletonLine{
+  height:11px;
+  width:72%;
+  margin:13px 3px 0;
+  border-radius:999px;
+  background:#eef1f4;
+}
+.skeletonLine.short{width:48%;margin-top:8px}
+.skeletonGlow{
+  position:relative;
+  overflow:hidden;
+}
+.skeletonGlow:after{
+  content:'';
+  position:absolute;
+  inset:0;
+  transform:translateX(-110%);
+  background:linear-gradient(100deg,transparent 12%,rgba(255,255,255,.94) 45%,transparent 78%);
+  animation:ezySkeletonGlow 1.25s ease-in-out infinite;
+}
+@keyframes ezySkeletonGlow{to{transform:translateX(110%)}}
+
+.legalRow a{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  text-decoration:none;
+  color:#777b81!important;
+}
+.legalRow a:hover{text-decoration:underline;text-underline-offset:3px}
+
+@media(max-width:480px){
+  .packageFacts{gap:7px!important}
+  .fact.blueFact{padding:10px 9px!important}
+  .fact.blueFact small{font-size:7.5px!important;letter-spacing:.08em!important}
+  .fact.blueFact strong{font-size:10.5px!important}
+  .skeletonPoster{border-radius:27px}
+}
+</style>
+
+<style>
+body.booting{background:#fff}.bootSplash{position:fixed;inset:0;z-index:99999;background:#fff;display:flex;align-items:center;justify-content:center;opacity:1;visibility:visible;transition:opacity .26s ease,visibility .26s ease}.bootSplash img{width:min(44vw,178px);height:auto;object-fit:contain}.bootSplash.done{opacity:0;visibility:hidden;pointer-events:none}body:not(.appReady)>.page,body:not(.appReady)>.contact,body:not(.appReady)>.modal{visibility:hidden}@media(display-mode:standalone){.bootSplash{display:none}}@media(min-width:700px){.bootSplash img{width:190px}}
+img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-user-drag:none!important}body,p,h1,h2,h3,h4,span,strong,small,a,input,textarea{-webkit-user-select:text;user-select:text}
+.tourSkeleton{border:1px solid var(--line);border-radius:24px;overflow:hidden;background:#fff}.tourSkeletonMedia{aspect-ratio:1.48/1;background:#eef1f4}.tourSkeletonBody{padding:16px}.skeletonGlow{position:relative;overflow:hidden}.skeletonGlow:after{content:'';position:absolute;inset:0;transform:translateX(-110%);background:linear-gradient(100deg,transparent 12%,rgba(255,255,255,.96) 45%,transparent 78%);animation:ezySkeletonGlow 1.18s ease-in-out infinite}.factAction{font:inherit}#packagePhone{font-size:10.5px;letter-spacing:-.01em}@media(max-width:480px){#packagePhone{font-size:9.5px}}
+</style>
 </head>
-<body class="booting" data-page="visa"><div id="bootSplash" class="bootSplash" aria-hidden="true"><img src="/logo.png" alt=""></div><div class="page" id="top"><header class="top"><div class="toprow"><button class="back is-hidden" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button><img class="logo" src="/logo.png" alt="EzyGo Travels"><span></span></div><nav class="nav">
-<a class="navbtn active" data-tab="visa" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="2.6"/><path d="M8.5 16h7M9.5 13.5h5"/></svg>Visa</a>
-<a class="navbtn" data-tab="packages" href="package.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v11H4z"/><path d="M8 7V5h8v2M4 11h16"/><path d="M9 15h6"/></svg>Packages</a>
-<a class="navbtn" data-tab="services" href="service.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 15h18M5 15V9l7-4 7 4v6M8 19h8"/></svg>Services</a>
-<a class="navbtn" data-tab="gallery" href="gallary.html" id="galleryNav" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 2-2 5 5"/></svg>Gallery</a>
-</nav><div class="tools" id="tools"><label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.8"/><path d="m20 20-3.4-3.4"/></svg><input id="search" placeholder="Search Country" autocomplete="off"></label><button class="filter" id="filterBtn" aria-label="Filter"><span class="filter-lines"><i></i><i></i><i></i></span></button></div></header><main><section id="explorePane"><div class="grid" id="cardGrid"></div></section><section class="cardDetail" id="cardDetail"><div class="packageDetail"><div class="detailSlider"><div class="detailTrack" id="packageTrack"></div><div class="detailDots" id="packageDots"></div></div><div class="packageTop"><div class="detailFlag" id="packageFlag"></div><div class="packageEyebrow" id="packageType"></div><h1 id="packageTitle"></h1><p id="packageDesc"></p><div class="packageFacts"><button type="button" class="fact blueFact factAction" id="packageValidityFact"><small>Validity</small><strong id="packageDays">Contact now</strong></button><button type="button" class="fact blueFact factAction" id="packageAvailabilityFact"><small>Availability</small><strong id="packageDate">Check now</strong></button><div class="fact blueFact"><small>Contact</small><strong id="packagePhone">+91 96563 09061</strong></div></div></div><div class="detailSection"><h2>Documents required</h2><div class="docList" id="packageDocs"></div></div><button class="enquire" id="packageEnquire">Enquire now</button></div></section></main><footer>
-<div class="footerin">
-<img alt="EzyGo Travels" class="footerlogo" src="/logo.png"/>
-<p class="footer-copy">Travel packages, visa support, ticket booking and trip assistance from EzyGo Travels.</p>
-<p class="footer-contact">Edavannappara · +91 96563 09061</p>
-<section class="review-section">
-<div class="sectionHead"><h3>Traveller feedback</h3><span>Swipe to view</span></div>
-<div class="reviewTrack">
-<article class="reviewCard">
-<div class="reviewHead"><div class="reviewAvatar">AA</div><div class="reviewMeta"><strong>Ajmal Aju</strong><small>Google Maps · Local Guide</small></div></div>
-<div class="reviewStars">★★★★★</div>
-<p>“I highly recommend Eazygo for both certificate attestation and travel bookings. They handled my job-related documentation perfectly on time and helped me secure my tickets without any hassle.”</p>
-<a class="reviewLink" href="https://goo.gl/maps/eyJ7W5d7iFYrLRgAA" rel="noopener" target="_blank">View on Google Maps <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
-</article>
-<article class="reviewCard">
-<div class="reviewHead"><div class="reviewAvatar">MF</div><div class="reviewMeta"><strong>Mr Fathah</strong><small>Google Maps review</small></div></div>
-<div class="reviewStars">★★★★★</div>
-<p>“I had an excellent experience booking my tickets here. The support I received was outstanding. Even during a difficult situation, I received great assistance from the moment I first inquired until I safely reached home.”</p>
-<a class="reviewLink" href="https://goo.gl/maps/q6txUQ7rikfGUDAb8" rel="noopener" target="_blank">View on Google Maps <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
-</article>
-<article class="reviewCard">
-<div class="reviewHead"><div class="reviewAvatar">MR</div><div class="reviewMeta"><strong>Muhammed Rinshad</strong><small>Google Maps review</small></div></div>
-<div class="reviewStars">★★★★★</div>
-<p>“I was worried about the passport application process, but they handled everything with expertise. From the initial documentation check to the final appointment, their guidance was spot on.”</p>
-<a class="reviewLink" href="https://goo.gl/maps/k55hyeU9BgY9wePT8" rel="noopener" target="_blank">View on Google Maps <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
-</article>
-<article class="reviewCard">
-<div class="reviewHead"><div class="reviewAvatar">HU</div><div class="reviewMeta"><strong>Harshik Usman</strong><small>Google Maps review</small></div></div>
-<div class="reviewStars">★★★★★</div>
-<p>“Living in Europe for three years and above as a student, one of the best service companions for me. No matter in air or by road, they always checked on the tickets they provided for me.”</p>
-</article>
+<body class="booting">
+<div id="bootSplash" class="bootSplash" aria-hidden="true"><img src="/logo.png" alt=""></div>
+<div class="page" id="top">
+<header class="top">
+  <div class="toprow">
+    <button class="back is-hidden" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <img class="logo" src="/logo.png" alt="EzyGo Travels">
+    <span></span>
+  </div>
+  <nav class="nav">
+    <button class="navbtn active" data-tab="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="2.6"/><path d="M8.5 16h7M9.5 13.5h5"/></svg>Visa</button>
+    <button class="navbtn" data-tab="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v11H4z"/><path d="M8 7V5h8v2M4 11h16"/><path d="M9 15h6"/></svg>Packages</button>
+    <button class="navbtn" data-tab="services"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 15h18M5 15V9l7-4 7 4v6M8 19h8"/></svg>Services</button>
+  </nav>
+  <div class="tools" id="tools">
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.8"/><path d="m20 20-3.4-3.4"/></svg><input id="search" placeholder="Search Country" autocomplete="off"></label>
+    <button class="filter" id="filterBtn" aria-label="Filter"><span class="filter-lines"><i></i><i></i><i></i></span></button>
+  </div>
+</header>
+<main>
+  <section id="explorePane"><div class="grid" id="cardGrid"></div></section>
+  <section class="packagesPane" id="packagesPane"><div class="packagesIntro"><h1>Travel packages</h1><p>Curated trips with clear day-by-day plans. Open a package to see the itinerary, inclusions, exclusions and enquiry option.</p></div><div class="packageGrid2" id="packageGrid2"></div></section>
+  <section class="services" id="servicesPane">
+    <div class="servicesList">
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/></svg></div><div><h3>Visa support</h3><p>Guidance for tourist visa enquiries, required documents, application preparation and travel-related visa support.</p><span class="serviceMore">Document guidance · Application assistance · Travel support</span></div></article>
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M6 17V8l6-3 6 3v9"/></svg></div><div><h3>Tour packages</h3><p>Domestic and international trip planning with itinerary support for families, couples, groups and custom holidays.</p><span class="serviceMore">Custom itineraries · Group trips · Holiday planning</span></div></article>
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg></div><div><h3>Certificate attestation</h3><p>Assistance for certificate and document attestation requirements with clear guidance on the documents needed.</p><span class="serviceMore">Certificate support · Document checks · Process guidance</span></div></article>
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15h18M7 15V9l5-3 5 3v6"/></svg></div><div><h3>Flight, train & bus tickets</h3><p>Booking assistance for domestic and international routes with practical support for your travel schedule.</p><span class="serviceMore">Flights · Train tickets · Bus tickets</span></div></article>
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a6 6 0 0 1 6 6v4l2 2H4l2-2V9a6 6 0 0 1 6-6Z"/><path d="M9 18h6"/></svg></div><div><h3>Umrah services</h3><p>Support with Umrah-related travel arrangements, planning and trip coordination from enquiry to departure.</p><span class="serviceMore">Travel planning · Booking support · Journey coordination</span></div></article>
+    </div>
+  </section>
+  <section class="tourDetailPane" id="tourDetail"><div class="tourDetailWrap"><div class="tourHero"><div class="tourTrack" id="tourTrack"></div><div class="tourDots" id="tourDots"></div></div><div class="tourHeader"><div class="tourKicker" id="tourTag"></div><h1 id="tourTitle"></h1><div class="tourDestination" id="tourDestination"></div><p class="tourHeaderDesc" id="tourSummary"></p><div class="tourFacts" id="tourFacts"><div class="tourFact"><small>Duration</small><strong id="tourDuration"></strong></div><div class="tourFact"><small>Package price</small><strong id="tourPrice"></strong></div></div></div><section class="tourBlock"><h2>Highlights</h2><div class="highlightChips" id="tourHighlights"></div></section><section class="tourBlock"><h2>Day-by-day itinerary</h2><div class="itinerary" id="tourItinerary"></div></section><section class="tourBlock"><div class="twoLists"><div><h2>Inclusions</h2><div class="cleanList" id="tourInclusions"></div></div><div><h2>Exclusions</h2><div class="cleanList" id="tourExclusions"></div></div></div></section><div id="tourExtraSections"></div><section class="tourBlock"><h2>Important notes</h2><div class="tourTerms" id="tourTerms"></div></section><button class="tourEnquire" id="tourEnquire">Enquire now</button><div class="tourSourceNote" id="tourSourceNote"></div></div></section>
+  <section class="cardDetail" id="cardDetail"><div class="packageDetail"><div class="detailSlider"><div class="detailTrack" id="packageTrack"></div><div class="detailDots" id="packageDots"></div></div><div class="packageTop"><div class="detailFlag" id="packageFlag"></div><div class="packageEyebrow" id="packageType"></div><h1 id="packageTitle"></h1><p id="packageDesc"></p><div class="packageFacts"><button type="button" class="fact blueFact factAction" id="packageValidityFact"><small>Validity</small><strong id="packageDays">Contact now</strong></button><button type="button" class="fact blueFact factAction" id="packageAvailabilityFact"><small>Availability</small><strong id="packageDate">Check now</strong></button><div class="fact blueFact"><small>Contact</small><strong id="packagePhone">+91 96563 09061</strong></div></div></div><div class="detailSection"><h2>Documents required</h2><div class="docList" id="packageDocs"></div></div><button class="enquire" id="packageEnquire">Enquire now</button></div></section>
+</main>
+<footer>
+  <div class="footerin">
+    <img class="footerlogo" src="/logo.png" alt="EzyGo Travels">
+    <p class="footer-copy">Travel packages, visa support, ticket booking and trip assistance from EzyGo Travels.</p>
+    <p class="footer-contact">Edavannappara · +91 96563 09061</p>
+
+    <section class="review-section">
+      <div class="sectionHead"><h3>Traveller feedback</h3><span>Swipe to view</span></div>
+      <div class="reviewTrack">
+        <article class="reviewCard">
+          <div class="reviewHead"><div class="reviewAvatar">AA</div><div class="reviewMeta"><strong>Ajmal Aju</strong><small>Google Maps · Local Guide</small></div></div>
+          <div class="reviewStars">★★★★★</div>
+          <p>“I highly recommend Eazygo for both certificate attestation and travel bookings. They handled my job-related documentation perfectly on time and helped me secure my tickets without any hassle.”</p>
+          <a class="reviewLink" href="https://goo.gl/maps/eyJ7W5d7iFYrLRgAA" target="_blank" rel="noopener">View on Google Maps <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+        </article>
+        <article class="reviewCard">
+          <div class="reviewHead"><div class="reviewAvatar">MF</div><div class="reviewMeta"><strong>Mr Fathah</strong><small>Google Maps review</small></div></div>
+          <div class="reviewStars">★★★★★</div>
+          <p>“I had an excellent experience booking my tickets here. The support I received was outstanding. Even during a difficult situation, I received great assistance from the moment I first inquired until I safely reached home.”</p>
+          <a class="reviewLink" href="https://goo.gl/maps/q6txUQ7rikfGUDAb8" target="_blank" rel="noopener">View on Google Maps <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+        </article>
+        <article class="reviewCard">
+          <div class="reviewHead"><div class="reviewAvatar">MR</div><div class="reviewMeta"><strong>Muhammed Rinshad</strong><small>Google Maps review</small></div></div>
+          <div class="reviewStars">★★★★★</div>
+          <p>“I was worried about the passport application process, but they handled everything with expertise. From the initial documentation check to the final appointment, their guidance was spot on.”</p>
+          <a class="reviewLink" href="https://goo.gl/maps/k55hyeU9BgY9wePT8" target="_blank" rel="noopener">View on Google Maps <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+        </article>
+        <article class="reviewCard">
+          <div class="reviewHead"><div class="reviewAvatar">HU</div><div class="reviewMeta"><strong>Harshik Usman</strong><small>Google Maps review</small></div></div>
+          <div class="reviewStars">★★★★★</div>
+          <p>“Living in Europe for three years and above as a student, one of the best service companions for me. No matter in air or by road, they always checked on the tickets they provided for me.”</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="feedback" id="feedback">
+      <h3>Share your feedback</h3><p>Name and phone are optional. Your message opens in WhatsApp for review before sending.</p>
+      <form class="form" id="feedbackForm"><div class="formrow"><input class="field" id="fbName" placeholder="Name (optional)"><input class="field" id="fbPhone" placeholder="Phone (optional)"></div><textarea class="field" id="fbMessage" placeholder="Your feedback" required></textarea><button class="send" type="submit">Send feedback</button></form>
+    </section>
+
+    <div class="accordions">
+      <div class="acc"><button class="accBtn" type="button">Company <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">EzyGo Travels provides travel packages, visa assistance, ticket booking, certificate attestation and trip support.</div></div>
+      <div class="acc"><button class="accBtn" type="button">Products <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">Tour packages · Visa support · Flight tickets · Train tickets · Bus tickets · Certificate attestation · Umrah services</div></div>
+      <div class="acc"><button class="accBtn" type="button">Office <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="accBody">Ground Floor, Konnar Tower, Calicut Road, Edavannappara.<br>Phone: +91 96563 09061</div></div>
+      <div class="legalRow"><a href="https://quartzsolution.netlify.app" target="_blank" rel="noopener">Developed by Quartz Web Solutions</a></div>
+      <div class="fixedCopyright">© <span id="year"></span> EzyGo Travels. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
 </div>
-</section>
-<section class="feedback" id="feedback">
-<h3>Share your feedback</h3><p>Name and phone are optional. Your message opens in WhatsApp for review before sending.</p>
-<form class="form" id="feedbackForm"><div class="formrow"><input class="field" id="fbName" placeholder="Name (optional)"/><input class="field" id="fbPhone" placeholder="Phone (optional)"/></div><textarea class="field" id="fbMessage" placeholder="Your feedback" required=""></textarea><button class="send" type="submit">Send feedback</button></form>
-</section>
-<div class="accordions">
-<div class="acc"><button class="accBtn" type="button">Company <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><div class="accBody">EzyGo Travels provides travel packages, visa assistance, ticket booking, certificate attestation and trip support.</div></div>
-<div class="acc"><button class="accBtn" type="button">Products <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><div class="accBody">Tour packages · Visa support · Flight tickets · Train tickets · Bus tickets · Certificate attestation · Umrah services</div></div>
-<div class="acc"><button class="accBtn" type="button">Office <svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><div class="accBody">Ground Floor, Konnar Tower, Calicut Road, Edavannappara.<br/>Phone: +91 96563 09061</div></div>
-<div class="legalRow"><a href="https://quartzsolution.netlify.app" rel="noopener" target="_blank">Developed by Quartz Web Solutions</a></div>
-<div class="fixedCopyright">© <span id="year"></span> EzyGo Travels. All rights reserved.</div>
-</div>
-</div>
-</footer></div><button aria-label="Contact EzyGo Travels" class="contact" id="contactBtn"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-2v-7h4M4 12h4v7H6a2 2 0 0 1-2-2v-5Z"></path><path d="M16 19c0 2-1.8 3-4 3"></path></svg></button><div class="modal" id="filterModal"><div class="sheet"><div class="sheetTop"><h3>Filter</h3><button aria-label="Close" id="closeFilter">×</button></div><div class="group"><h4>Type</h4><div class="chips" id="typeChips"></div></div><div class="group"><h4>Validity</h4><div class="chips" id="dayChips"><button class="chip" data-days="30">Up to 30 days</button><button class="chip" data-days="60">Up to 60 days</button><button class="chip" data-days="90">Up to 90 days</button><button class="chip" data-days="365">Up to 1 year</button></div></div><div class="filterActions"><button class="clear" id="clearFilter">Clear</button><button class="apply" id="applyFilter">Apply</button></div></div></div><script src="config.js"></script><script src="common.js?v=15"></script><script src="visa.js?v=15"></script></body></html>
+<button class="contact" id="contactBtn" aria-label="Contact EzyGo Travels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-2v-7h4M4 12h4v7H6a2 2 0 0 1-2-2v-5Z"/><path d="M16 19c0 2-1.8 3-4 3"/></svg></button>
+
+<div class="modal" id="filterModal"><div class="sheet"><div class="sheetTop"><h3>Filter</h3><button id="closeFilter" aria-label="Close">×</button></div><div class="group"><h4>Type</h4><div class="chips" id="typeChips"></div></div><div class="group"><h4>Validity</h4><div class="chips" id="dayChips"><button class="chip" data-days="30">Up to 30 days</button><button class="chip" data-days="60">Up to 60 days</button><button class="chip" data-days="90">Up to 90 days</button><button class="chip" data-days="365">Up to 1 year</button></div></div><div class="filterActions"><button class="clear" id="clearFilter">Clear</button><button class="apply" id="applyFilter">Apply</button></div></div></div>
+
+
+
+<style>
+.dbStatus{display:none;margin:12px auto 0;max-width:1180px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;font-size:12px;color:#74787e;background:#fff}.dbStatus.show{display:block}.feedbackSuccess{font-size:12px;color:#3f6f52;margin-top:10px}.cardmeta .metagrid>div{min-width:0}.below .line2{overflow-wrap:anywhere}
+</style>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}),{once:true});
+}
+</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body></html>
