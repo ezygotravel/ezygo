@@ -281,7 +281,7 @@ footer{padding:68px 20px 34px}
 
 
 /* Visa grouping - keeps the existing card design */
-.visaGroup{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:10px 0 -18px;padding:0 2px;color:#171717;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}.visaGroup:after{content:"";height:1px;background:var(--line);flex:1}.flagcircle img{width:23px;height:23px;display:block;object-fit:contain}.detailFlag{width:32px;height:32px;border-radius:50%;background:#f5f6f7;display:grid;place-items:center;margin-bottom:12px;overflow:hidden}.detailFlag img{width:23px;height:23px;object-fit:contain}.packageTop .detailFlag+ .packageEyebrow{margin-top:0}
+.visaGroup{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:10px 0 -18px;padding:0 2px;color:#171717;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}.visaGroup:after{content:"";height:1px;background:var(--line);flex:1}.flagcircle img{width:23px;height:23px;display:block;object-fit:contain}.detailFlag{width:32px;height:32px;border-radius:50%;background:#f5f6f7;display:grid;place-items:center;margin-bottom:12px;overflow:visible;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif!important;font-variant-emoji:emoji;color:initial;font-size:20px;line-height:1}.detailFlag img{width:23px;height:23px;object-fit:contain}.packageTop .detailFlag+ .packageEyebrow{margin-top:0}
 .dummyTicketDetail{display:flex;align-items:flex-start;gap:12px;margin-top:18px;padding:14px 15px;border:1px solid #cfe1ff;border-radius:16px;background:#f3f8ff}.dummyTicketIcon{width:40px;height:40px;border-radius:12px;background:#e3efff;display:grid;place-items:center;flex:none}.dummyTicketIcon svg{width:23px;height:23px;fill:none;stroke:#1769e0;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.dummyTicketDetail strong{display:block;font-size:13px;line-height:1.25;color:#1457b8}.dummyTicketDetail p{margin:4px 0 0;font-size:11px;line-height:1.5;color:#55749f}
 @media(min-width:700px){.visaGroup{font-size:13px;margin-top:18px;margin-bottom:-10px}}
 
@@ -532,6 +532,7 @@ img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user
   <section class="services" id="servicesPane">
     <div class="servicesList">
       <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/></svg></div><div><h3>Visa support</h3><p>Guidance for tourist visa enquiries, required documents, application preparation and travel-related visa support.</p><span class="serviceMore">Document guidance · Application assistance · Travel support</span></div></article>
+      <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.25A1.75 1.75 0 0 1 6.25 5.5h11.5a1.75 1.75 0 0 1 1.75 1.75v2a2.75 2.75 0 0 0 0 5.5v2a1.75 1.75 0 0 1-1.75 1.75H6.25a1.75 1.75 0 0 1-1.75-1.75v-2a2.75 2.75 0 0 0 0-5.5v-2Z"/><path d="M12 8.25v1.5M12 11.25v1.5M12 14.25v1.5"/></svg></div><div><h3>Dummy Ticket</h3><p>Temporary flight itinerary support for visa applications where a dummy ticket is available or required.</p><span class="serviceMore">Temporary itinerary · Visa application support · Travel documentation</span></div></article>
       <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M6 17V8l6-3 6 3v9"/></svg></div><div><h3>Tour packages</h3><p>Domestic and international trip planning with itinerary support for families, couples, groups and custom holidays.</p><span class="serviceMore">Custom itineraries · Group trips · Holiday planning</span></div></article>
       <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg></div><div><h3>Certificate attestation</h3><p>Assistance for certificate and document attestation requirements with clear guidance on the documents needed.</p><span class="serviceMore">Certificate support · Document checks · Process guidance</span></div></article>
       <article class="service"><div class="serviceIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15h18M7 15V9l5-3 5 3v6"/></svg></div><div><h3>Flight, train & bus tickets</h3><p>Booking assistance for domestic and international routes with practical support for your travel schedule.</p><span class="serviceMore">Flights · Train tickets · Bus tickets</span></div></article>
@@ -606,9 +607,9 @@ img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user
 
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js?v=14').catch(()=>{}),{once:true});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js?v=16').catch(()=>{}),{once:true});
 }
 </script>
 <script src="config.js"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body></html>
