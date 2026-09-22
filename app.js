@@ -135,8 +135,7 @@
   }
   function cardMarkup(c,index=999) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
-    const dummyTicket=c.dummy_ticket!==false?`<div class="dummyTicket"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h16v9H4z"/><path d="M8 7.5v9M16 7.5v9"/><path d="m10.1 12 1.3 1.3 2.8-3"/></svg><div><strong>Dummy Ticket</strong><small>Temporary flight itinerary support for visa application.</small></div></div>`:'';
-    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="${index<20?'eager':'lazy'}" fetchpriority="${index<8?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${dummyTicket}${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
+    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="${index<20?'eager':'lazy'}" fetchpriority="${index<8?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}${c.fee?' · '+esc(c.fee):''}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">${esc(c.date_label||'Visa assistance')}</div><div class="line2">${esc(c.deadline||'Contact us for current processing details')}</div>${c.fee?`<div class="fee">${esc(c.fee)}</div>`:''}</div></article>`;
   }
   function renderCards() {
     const q=($('#search')?.value||'').trim().toLowerCase();
@@ -221,6 +220,8 @@
     $('#packageDays').textContent='Contact now';
     $('#packageDate').textContent='Check now';
     const packagePhone=$('#packagePhone');if(packagePhone)packagePhone.textContent='+91 96563 09061';
+    const dummyTicket=$('#packageDummyTicket');
+    if(dummyTicket) dummyTicket.innerHTML=c.dummy_ticket!==false?`<div class="dummyTicketDetail"><div class="dummyTicketIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7.25a1.75 1.75 0 0 1 1.75-1.75h11.5a1.75 1.75 0 0 1 1.75 1.75v2a2.75 2.75 0 0 0 0 5.5v2A1.75 1.75 0 0 1 17.75 18.5H6.25A1.75 1.75 0 0 1 4.5 16.75v-2a2.75 2.75 0 0 0 0-5.5v-2Z"/><path d="M12 8.25v1.5M12 11.25v1.5M12 14.25v1.5"/></svg></div><div><strong>Dummy Ticket</strong><p>Temporary flight itinerary support available for this visa application.</p></div></div>`:'';
     $('#packageDocs').innerHTML=arr(c.documents).map(d=>`<div class="docItem"><span class="docTick">✓</span><span>${esc(d)}</span></div>`).join('');
 
     showOnly('cardDetail');
