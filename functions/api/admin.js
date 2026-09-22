@@ -1,5 +1,9 @@
 const safeTables = new Set(['visa_groups', 'visa_cards', 'packages', 'galleries', 'feedback']);
 
+const SITE_ORIGIN = 'https://ezygotravel.in';
+const INDEXNOW_KEY = '75071fe78ff7b99e982d3dc7e7d1f021';
+
+
 const slug = (value) => String(value || 'file')
   .toLowerCase()
   .replace(/[^a-z0-9._-]+/g, '-')
@@ -82,6 +86,41 @@ export async function onRequest(context) {
       throw new Error(message);
     }
     return data;
+  };
+
+
+  const publicUrlFor = (table, id = '') => {
+    const safeId = encodeURIComponent(String(id || '').trim());
+    if (table === 'visa_cards' && safeId) return `${SITE_ORIGIN}/visa/${safeId}`;
+    if (table === 'packages' && safeId) return `${SITE_ORIGIN}/package/${safeId}`;
+    if (table === 'galleries' && safeId) return `${SITE_ORIGIN}/gallery/${safeId}`;
+    if (table === 'visa_groups') return `${SITE_ORIGIN}/`;
+    return '';
+  };
+
+  const sectionUrlFor = table => {
+    if (table === 'packages') return `${SITE_ORIGIN}/packages`;
+    if (table === 'galleries') return `${SITE_ORIGIN}/gallery`;
+    return `${SITE_ORIGIN}/`;
+  };
+
+  const notifyIndexNow = async values => {
+    const urlList = [...new Set((values || []).map(String).filter(v => v.startsWith(SITE_ORIGIN)))];
+    if (!urlList.length) return;
+    try {
+      await fetch('https://api.indexnow.org/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          host: 'ezygotravel.in',
+          key: INDEXNOW_KEY,
+          keyLocation: `${SITE_ORIGIN}/${INDEXNOW_KEY}.txt`,
+          urlList
+        })
+      });
+    } catch (error) {
+      console.warn('IndexNow notification failed', error);
+    }
   };
 
 
@@ -171,11 +210,13 @@ export async function onRequest(context) {
           record.sort_order = (rows?.[0]?.sort_order ?? -1) + 1;
         }
       }
+      if (table !== 'visa_groups') record.updated_at = new Date().toISOString();
       const out = await req(`/rest/v1/${table}?on_conflict=id`, {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify(record)
       });
+      await notifyIndexNow([publicUrlFor(table, record.id), sectionUrlFor(table)]);
       return json({ record: out?.[0] || null });
     }
 
@@ -214,6 +255,7 @@ export async function onRequest(context) {
         method: 'DELETE',
         headers: { Prefer: 'return=minimal' }
       });
+      await notifyIndexNow([publicUrlFor(table, body.id), sectionUrlFor(table)]);
       return json({ ok: true });
     }
 
@@ -231,6 +273,7 @@ export async function onRequest(context) {
           body: JSON.stringify(patch)
         });
       }
+      await notifyIndexNow([sectionUrlFor(table)]);
       return json({ ok: true });
     }
 
@@ -255,6 +298,7 @@ export async function onRequest(context) {
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify(patch)
       });
+      await notifyIndexNow([publicUrlFor(table, id), sectionUrlFor(table)]);
       return json({ ok: true });
     }
 

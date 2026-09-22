@@ -15,3 +15,17 @@
 
 /*.webp
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/robots.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=UTF-8
+
+/llms.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=UTF-8
+
+/admin
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow, noarchive

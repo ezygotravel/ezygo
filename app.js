@@ -14,6 +14,115 @@
   let activeType = '', activeDays = '';
   const preloadedMedia = new Set();
   let mediaObserver = null;
+  const SITE_ORIGIN = 'https://ezygotravel.in';
+  const HOME_SEO = Object.freeze({
+    title: 'EzyGo Travels | Visa Services & Tour Packages in Kerala',
+    description: 'Visa assistance, tour packages, flight, train and bus tickets, certificate attestation and Umrah travel support from EzyGo Travels in Edavannappara, Kerala.'
+  });
+
+  function absoluteUrl(value=''){
+    const raw=String(value||'').trim();
+    if(!raw || /^data:/i.test(raw)) return `${SITE_ORIGIN}/logo.png`;
+    if(/^https?:\/\//i.test(raw)) return raw;
+    return `${SITE_ORIGIN}${raw.startsWith('/')?'':'/'}${raw}`;
+  }
+  function ensureMeta(selector,attrs={}){
+    let el=document.head.querySelector(selector);
+    if(!el){
+      el=document.createElement('meta');
+      Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+      document.head.appendChild(el);
+    }
+    return el;
+  }
+  function setMetaName(name,content){
+    const el=ensureMeta(`meta[name="${name}"]`,{name});
+    el.setAttribute('content',content);
+  }
+  function setMetaProperty(property,content){
+    const el=ensureMeta(`meta[property="${property}"]`,{property});
+    el.setAttribute('content',content);
+  }
+  function setCanonical(path='/'){
+    let el=document.head.querySelector('link[rel="canonical"]');
+    if(!el){el=document.createElement('link');el.rel='canonical';document.head.appendChild(el)}
+    el.href=`${SITE_ORIGIN}${path==='/'?'':path}`;
+  }
+  function setDynamicSchema(nodes=[]){
+    const el=$('#dynamic-schema');
+    if(!el) return;
+    el.textContent=JSON.stringify({"@context":"https://schema.org","@graph":nodes});
+  }
+  function seoText(value='',fallback=''){
+    const clean=String(value||fallback||'').replace(/\s+/g,' ').trim();
+    return clean.length>165?`${clean.slice(0,162).replace(/\s+\S*$/,'')}...`:clean;
+  }
+  function setSeo({title=HOME_SEO.title,description=HOME_SEO.description,path='/',image='/logo.png',type='website',schema=[]}={}){
+    const canonicalPath=path.startsWith('/')?path:`/${path}`;
+    const url=`${SITE_ORIGIN}${canonicalPath==='/'?'':canonicalPath}`;
+    const img=absoluteUrl(image);
+    document.title=title;
+    setMetaName('description',seoText(description,HOME_SEO.description));
+    setMetaProperty('og:type',type);
+    setMetaProperty('og:title',title);
+    setMetaProperty('og:description',seoText(description,HOME_SEO.description));
+    setMetaProperty('og:url',url);
+    setMetaProperty('og:image',img);
+    setMetaProperty('og:image:alt',title);
+    setMetaName('twitter:title',title);
+    setMetaName('twitter:description',seoText(description,HOME_SEO.description));
+    setMetaName('twitter:image',img);
+    setCanonical(canonicalPath);
+    setDynamicSchema(schema);
+  }
+  function breadcrumbSchema(items){
+    return {
+      "@type":"BreadcrumbList",
+      "itemListElement":items.map((item,index)=>({
+        "@type":"ListItem",
+        "position":index+1,
+        "name":item.name,
+        "item":`${SITE_ORIGIN}${item.path==='/'?'':item.path}`
+      }))
+    };
+  }
+  function sectionSeo(view){
+    if(view==='packagesPane'){
+      setSeo({
+        title:'Tour Packages from Kerala | EzyGo Travels',
+        description:'Explore domestic and international tour packages from EzyGo Travels with trip itineraries, inclusions, exclusions and travel enquiry support.',
+        path:'/packages',
+        schema:[breadcrumbSchema([{name:'Home',path:'/'},{name:'Tour Packages',path:'/packages'}])]
+      });
+      return;
+    }
+    if(view==='servicesPane'){
+      setSeo({
+        title:'Travel Services in Kerala | EzyGo Travels',
+        description:'Visa assistance, tour planning, flight, train and bus ticket booking, certificate attestation and Umrah travel support from EzyGo Travels.',
+        path:'/services',
+        schema:[breadcrumbSchema([{name:'Home',path:'/'},{name:'Travel Services',path:'/services'}])]
+      });
+      return;
+    }
+    if(view==='galleryPane'){
+      setSeo({
+        title:'Travel Gallery | EzyGo Travels',
+        description:'Browse travel photos and destination highlights from EzyGo Travels.',
+        path:'/gallery',
+        schema:[breadcrumbSchema([{name:'Home',path:'/'},{name:'Travel Gallery',path:'/gallery'}])]
+      });
+      return;
+    }
+    setSeo({
+      title:HOME_SEO.title,
+      description:HOME_SEO.description,
+      path:'/'
+    });
+  }
+  function internalClick(e){
+    return e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey;
+  }
 
   function esc(v='') { return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function cleanGroupName(v=''){ return String(v).replace(/^[\s🌏🌍]+/u,'').trim(); }
@@ -117,6 +226,7 @@
       isLoadingCards=false;
       if(cards.length) renderCards(); else showCardLoading();
       renderPackages(); renderGalleries(); buildTypeChips(); syncContentNavigation();
+      applyLocationRoute(false);
       observeMediaAhead(); warmMediaAfterCovers();
     } catch (err) {
       console.error(err);
@@ -135,7 +245,7 @@
   }
   function cardMarkup(c,index=999) {
     const valid=c.validity || (Number(c.days)?`${c.days} Days`:'Check details');
-    return `<article class="card" data-id="${esc(c.id)}"><div class="poster"><img loading="${index<20?'eager':'lazy'}" fetchpriority="${index<8?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)}"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><div class="country">${esc(c.country)}</div></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">VISA</div><div class="line2">Fast &amp; reliable visa assistance for a smooth travel experience</div><div class="fee">More details</div></div></article>`;
+    return `<a class="card" href="/visa/${encodeURIComponent(c.id)}" data-id="${esc(c.id)}" aria-label="${esc(c.country)} visa details"><div class="poster"><img loading="${index<20?'eager':'lazy'}" fetchpriority="${index<8?'high':'auto'}" decoding="async" src="${mediaUrl(c.cover_path,c.country)}" onerror="this.onerror=null;this.src=window.__ezyFallback?window.__ezyFallback(this.alt):this.src" alt="${esc(c.country)} visa assistance"><div class="identity"><div class="flagcircle">${esc(c.flag||'✈️')}</div><h3 class="country">${esc(c.country)}</h3></div><div class="hoverpeek"><span>${esc(c.type||'Visa')}</span><b>${esc(valid)}</b><small>View full details</small></div><div class="cardmeta"><div class="metagrid"><div><span class="label">Type</span><span class="value">${esc(c.type||'Visa')}</span></div><div><span class="label">Valid</span><span class="value">${esc(valid)}</span></div></div></div></div><div class="below"><div class="line1">VISA</div><div class="line2">Fast &amp; reliable visa assistance for a smooth travel experience</div><div class="fee">More details</div></div></a>`;
   }
   function renderCards() {
     const q=($('#search')?.value||'').trim().toLowerCase();
@@ -144,7 +254,7 @@
     if(activeDays) { const n=Number(activeDays); list=list.filter(c=>n===0?Number(c.days||0)===0:Number(c.days||0)<=n); }
     const groupOrder = groups.length ? groups : [...new Set(cards.map(c=>c.group_name))].map((name,i)=>({name,sort_order:i}));
     let html='',visibleIndex=0;
-    for(const g of groupOrder){const items=list.filter(c=>c.group_name===g.name);if(!items.length)continue;html+=`<div class="visaGroup">${esc(cleanGroupName(g.name))}</div>${items.map(c=>cardMarkup(c,visibleIndex++)).join('')}`;}
+    for(const g of groupOrder){const items=list.filter(c=>c.group_name===g.name);if(!items.length)continue;html+=`<h2 class="visaGroup">${esc(cleanGroupName(g.name))}</h2>${items.map(c=>cardMarkup(c,visibleIndex++)).join('')}`;}
     if(!html){
       if(isLoadingCards || !cards.length){ showCardLoading(); return; }
       html='<div class="empty">No matching visa options.</div>';
@@ -152,10 +262,10 @@
     $('#cardGrid').innerHTML=html;requestAnimationFrame(observeMediaAhead);
   }
   function renderPackages(){
-    $('#packageGrid2').innerHTML=packages.map(p=>`<article class="tourCard" data-tour="${esc(p.id)}"><div class="tourCardMedia"><img loading="eager" fetchpriority="auto" decoding="async" src="${mediaUrl(p.cover_path,p.title)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)}"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></article>`).join('') || '<div class="empty">No packages available.</div>';requestAnimationFrame(observeMediaAhead);
+    $('#packageGrid2').innerHTML=packages.map(p=>`<a class="tourCard" href="/package/${encodeURIComponent(p.id)}" data-tour="${esc(p.id)}" aria-label="${esc(p.title)} tour package"><div class="tourCardMedia"><img loading="eager" fetchpriority="auto" decoding="async" src="${mediaUrl(p.cover_path,p.title)}" onerror="this.onerror=null;this.src=window.__ezyFallback(this.alt)" alt="${esc(p.title)} tour package"><div class="tourOverlay"><span>${esc(p.tag||'Travel package')}</span><h2>${esc(p.title)}</h2></div></div><div class="tourCardBody"><p>${esc(p.destination||'')}</p><div class="tourCardFacts"><span>${esc(p.duration||'')}</span>${p.price?`<strong>${esc(p.price)}</strong>`:''}</div></div></a>`).join('') || '<div class="empty">No packages available.</div>';requestAnimationFrame(observeMediaAhead);
   }
   function renderGalleries(){
-    $('#galleryGrid').innerHTML=galleries.map(g=>`<button class="galleryCard" data-gallery="${esc(g.id)}"><img loading="lazy" decoding="async" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)}"><span>${esc(g.title)}</span></button>`).join('') || '<div class="empty">No gallery items available.</div>';requestAnimationFrame(observeMediaAhead);
+    $('#galleryGrid').innerHTML=galleries.map(g=>`<a class="galleryCard" href="/gallery/${encodeURIComponent(g.id)}" data-gallery="${esc(g.id)}" aria-label="${esc(g.title)} gallery"><img loading="lazy" decoding="async" src="${mediaUrl(g.cover_path,g.title)}" alt="${esc(g.title)} travel gallery"><h3>${esc(g.title)}</h3></a>`).join('') || '<div class="empty">No gallery items available.</div>';requestAnimationFrame(observeMediaAhead);
   }
   function arr(v){ return Array.isArray(v)?v:[]; }
   function setVisaSlide(index, animate=true){
@@ -228,7 +338,28 @@
     showOnly('cardDetail');
     bindVisaSlider();
     setVisaSlide(0,false);
-    if(push) history.pushState({view:'cardDetail',id:c.id},'','#visa-'+c.id);
+    const visaPath=`/visa/${encodeURIComponent(c.id)}`;
+    setSeo({
+      title:`${c.country} Visa Assistance | EzyGo Travels`,
+      description:seoText(c.description,`${c.country} visa assistance, document guidance and travel support from EzyGo Travels in Kerala.`),
+      path:visaPath,
+      image:mediaUrl(c.cover_path,c.country),
+      type:'article',
+      schema:[
+        {
+          "@type":"Service",
+          "name":`${c.country} Visa Assistance`,
+          "serviceType":c.type||'Visa assistance',
+          "description":seoText(c.description,`${c.country} visa assistance from EzyGo Travels.`),
+          "provider":{"@id":`${SITE_ORIGIN}/#travelagency`},
+          "areaServed":{"@type":"Country","name":"India"},
+          "url":`${SITE_ORIGIN}${visaPath}`,
+          "image":absoluteUrl(mediaUrl(c.cover_path,c.country))
+        },
+        breadcrumbSchema([{name:'Home',path:'/'},{name:`${c.country} Visa`,path:visaPath}])
+      ]
+    });
+    if(push) history.pushState({view:'cardDetail',id:c.id},'',visaPath);
   }
 
   function setTourSlide(index, animate=true){
@@ -314,12 +445,51 @@
     bindTourSlider();
     setTourSlide(0,false);
 
-    if(push) history.pushState({view:'tourDetail',id:p.id},'','#tour-'+p.id);
+    const tourPath=`/package/${encodeURIComponent(p.id)}`;
+    setSeo({
+      title:`${p.title} Tour Package | EzyGo Travels`,
+      description:seoText(p.summary,`${p.title} tour package from EzyGo Travels with itinerary and travel support.`),
+      path:tourPath,
+      image:mediaUrl(p.cover_path,p.title),
+      type:'article',
+      schema:[
+        {
+          "@type":"TouristTrip",
+          "name":p.title||'Travel package',
+          "description":seoText(p.summary,`${p.title} travel package from EzyGo Travels.`),
+          "touristType":"Leisure travellers",
+          "provider":{"@id":`${SITE_ORIGIN}/#travelagency`},
+          "url":`${SITE_ORIGIN}${tourPath}`,
+          "image":absoluteUrl(mediaUrl(p.cover_path,p.title))
+        },
+        breadcrumbSchema([{name:'Home',path:'/'},{name:'Tour Packages',path:'/packages'},{name:p.title||'Package',path:tourPath}])
+      ]
+    });
+    if(push) history.pushState({view:'tourDetail',id:p.id},'',tourPath);
   }
   function openGallery(id,push=true){
     const g=galleries.find(x=>String(x.id)===String(id)); if(!g)return; currentGallery=g;preloadMedia([g.cover_path,...arr(g.image_paths)]); $('#detailTitle').textContent=g.title||''; $('#detailDesc').textContent=g.description||'';
     const imgs=arr(g.image_paths); $('#photoGrid').innerHTML=imgs.map((src,i)=>`<button class="photo" data-photo="${i}"><img loading="lazy" decoding="async" fetchpriority="auto" src="${mediaUrl(src,`${g.title} ${i+1}`)}" alt="${esc(g.title)} image ${i+1}"></button>`).join('') || '<div class="empty">No photos uploaded yet.</div>';
-    showOnly('galleryDetail'); if(push) history.pushState({view:'galleryDetail',id:g.id},'','#gallery-'+g.id);
+    showOnly('galleryDetail');
+    const galleryPath=`/gallery/${encodeURIComponent(g.id)}`;
+    setSeo({
+      title:`${g.title} Travel Gallery | EzyGo Travels`,
+      description:seoText(g.description,`Travel photos and destination highlights from ${g.title} by EzyGo Travels.`),
+      path:galleryPath,
+      image:mediaUrl(g.cover_path,g.title),
+      type:'article',
+      schema:[
+        {
+          "@type":"ImageGallery",
+          "name":g.title||'Travel Gallery',
+          "description":seoText(g.description,`${g.title} travel gallery from EzyGo Travels.`),
+          "url":`${SITE_ORIGIN}${galleryPath}`,
+          "image":[g.cover_path,...arr(g.image_paths)].filter(Boolean).slice(0,12).map(x=>absoluteUrl(mediaUrl(x,g.title)))
+        },
+        breadcrumbSchema([{name:'Home',path:'/'},{name:'Travel Gallery',path:'/gallery'},{name:g.title||'Gallery',path:galleryPath}])
+      ]
+    });
+    if(push) history.pushState({view:'galleryDetail',id:g.id},'',galleryPath);
   }
   function updateBackButton(){
     const btn=$('#backBtn');
@@ -343,9 +513,37 @@
   }
   function showTab(tab,push=true){
     const map={explore:'explorePane',packages:'packagesPane',services:'servicesPane',gallery:'galleryPane'};
+    const paths={explore:'/',packages:'/packages',services:'/services',gallery:'/gallery'};
     const view=map[tab]||'explorePane';
     showOnly(view,true);
-    if(push) history.pushState({view},'','#'+tab);
+    sectionSeo(view);
+    if(push) history.pushState({view},'',paths[tab]||'/');
+  }
+  function applyLocationRoute(){
+    let path=(location.pathname||'/').replace(/\/+$/,'')||'/';
+    const hash=location.hash||'';
+    if(hash){
+      let migrated='';
+      if(/^#visa-/i.test(hash)) migrated=`/visa/${encodeURIComponent(hash.replace(/^#visa-/i,''))}`;
+      else if(/^#tour-/i.test(hash)) migrated=`/package/${encodeURIComponent(hash.replace(/^#tour-/i,''))}`;
+      else if(/^#gallery-/i.test(hash)) migrated=`/gallery/${encodeURIComponent(hash.replace(/^#gallery-/i,''))}`;
+      else if(hash==='#packages') migrated='/packages';
+      else if(hash==='#services') migrated='/services';
+      else if(hash==='#gallery') migrated='/gallery';
+      else if(hash==='#explore') migrated='/';
+      if(migrated){history.replaceState(history.state||{},'',migrated);path=migrated}
+    }
+    const decodeId=v=>{try{return decodeURIComponent(v)}catch(_){return v}};
+    let m=path.match(/^\/visa\/([^/]+)$/i);
+    if(m){const id=decodeId(m[1]);if(cards.some(x=>String(x.id)===String(id))){openCardDetail(id,false);return}}
+    m=path.match(/^\/package\/([^/]+)$/i);
+    if(m){const id=decodeId(m[1]);if(packages.some(x=>String(x.id)===String(id))){openTour(id,false);return}}
+    m=path.match(/^\/gallery\/([^/]+)$/i);
+    if(m){const id=decodeId(m[1]);if(galleries.some(x=>String(x.id)===String(id))){openGallery(id,false);return}}
+    if(path==='/packages'){showTab('packages',false);return}
+    if(path==='/services'){showTab('services',false);return}
+    if(path==='/gallery'){showTab('gallery',false);return}
+    showTab('explore',false);
   }
   function handleBack(){
     if(window.scrollY>80){
@@ -373,10 +571,10 @@
   document.addEventListener('DOMContentLoaded',()=>{
     $('#year').textContent=new Date().getFullYear();showCardLoading();showPackageLoading();showGalleryLoading();setTimeout(revealApp,900);loadData();
     document.addEventListener('pointerover',e=>{if(e.pointerType==='mouse')warmTarget(e.target)},{passive:true});document.addEventListener('touchstart',e=>warmTarget(e.target),{passive:true});
-    $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openCardDetail(c.dataset.id)}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c)openTour(c.dataset.tour)}; $('#galleryGrid').onclick=e=>{const c=e.target.closest('[data-gallery]');if(c)openGallery(c.dataset.gallery)}; $('#photoGrid').onclick=e=>{const b=e.target.closest('[data-photo]');if(b&&currentGallery)openLightbox(currentGallery,Number(b.dataset.photo))};
-    $$('.navbtn').forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); $('#backBtn').onclick=handleBack; window.addEventListener('scroll',updateBackButton,{passive:true}); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
+    $('#search').addEventListener('input',renderCards); $('#cardGrid').onclick=e=>{const c=e.target.closest('[data-id]');if(c&&internalClick(e)){e.preventDefault();openCardDetail(c.dataset.id)}}; $('#packageGrid2').onclick=e=>{const c=e.target.closest('[data-tour]');if(c&&internalClick(e)){e.preventDefault();openTour(c.dataset.tour)}}; $('#galleryGrid').onclick=e=>{const c=e.target.closest('[data-gallery]');if(c&&internalClick(e)){e.preventDefault();openGallery(c.dataset.gallery)}}; $('#photoGrid').onclick=e=>{const b=e.target.closest('[data-photo]');if(b&&currentGallery)openLightbox(currentGallery,Number(b.dataset.photo))};
+    $$('.navbtn').forEach(b=>b.onclick=e=>{if(!internalClick(e))return;e.preventDefault();showTab(b.dataset.tab)}); $('#backBtn').onclick=handleBack; window.addEventListener('scroll',updateBackButton,{passive:true}); $('#filterBtn').onclick=()=>$('#filterModal').classList.add('open'); $('#closeFilter').onclick=()=>$('#filterModal').classList.remove('open'); $('#applyFilter').onclick=()=>{$('#filterModal').classList.remove('open');renderCards()}; $('#clearFilter').onclick=()=>{activeType='';activeDays='';$$('.chip').forEach(x=>x.classList.remove('active'));renderCards()}; $$('[data-days]').forEach(b=>b.onclick=()=>{activeDays=activeDays===b.dataset.days?'':b.dataset.days;$$('[data-days]').forEach(x=>x.classList.toggle('active',x.dataset.days===activeDays))});
     $('#feedbackForm').onsubmit=submitFeedback; $('#contactBtn').onclick=()=>window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent('Hi EzyGo Travels, I would like to make a travel enquiry.')}`,'_blank'); $('#packageEnquire').onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentCard.country}.`)}`,'_blank'); const validityFact=$('#packageValidityFact');if(validityFact)validityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please confirm visa validity for ${currentCard.country}.`)}`,'_blank'); const availabilityFact=$('#packageAvailabilityFact');if(availabilityFact)availabilityFact.onclick=()=>currentCard&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, please check current availability/details for ${currentCard.country}.`)}`,'_blank'); $('#tourEnquire').onclick=()=>currentTour&&window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(`Hi EzyGo Travels, I would like details about ${currentTour.title}.`)}`,'_blank');
     $$('.accBtn').forEach(btn=>btn.onclick=()=>btn.parentElement.classList.toggle('open')); $('#lbClose').onclick=closeLightbox; $('#lbPrev').onclick=()=>{if(!currentGallery)return;const n=Math.max(0,currentImageIndex-1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)}; $('#lbNext').onclick=()=>{if(!currentGallery)return;const n=Math.min(arr(currentGallery.image_paths).length-1,currentImageIndex+1);$('#lbTrack').scrollTo({left:$('#lbTrack').clientWidth*n,behavior:'smooth'});updateCount(n)};
-    window.addEventListener('popstate',e=>{const st=e.state;if(st?.view==='cardDetail')openCardDetail(st.id,false); else if(st?.view==='tourDetail')openTour(st.id,false); else if(st?.view==='galleryDetail')openGallery(st.id,false); else showOnly(st?.view||'explorePane',true)}); history.replaceState({view:'explorePane'},'',location.pathname); currentView='explorePane'; updateBackButton();
+    window.addEventListener('popstate',()=>applyLocationRoute()); currentView='explorePane'; sectionSeo('explorePane'); updateBackButton();
   });
 })();

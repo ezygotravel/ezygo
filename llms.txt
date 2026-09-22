@@ -1,0 +1,24 @@
+# EzyGo Travels
+
+> EzyGo Travels is a travel agency in Edavannappara, Kerala, India providing visa assistance, tour packages, ticket booking, certificate attestation and Umrah travel support.
+
+Canonical website: https://ezygotravel.in/
+Phone: +91 96563 09061
+Office: Ground Floor, Konnar Tower, Calicut Road, Edavannappara, Kerala, India
+
+## Main services
+- Tourist visa assistance and document guidance
+- Domestic and international tour packages
+- Flight, train and bus ticket booking support
+- Certificate attestation assistance
+- Umrah travel services
+- Dummy/temporary flight itinerary support where applicable for visa applications
+
+## Main sections
+- Visa services: https://ezygotravel.in/
+- Tour packages: https://ezygotravel.in/packages
+- Travel services: https://ezygotravel.in/services
+- Travel gallery: https://ezygotravel.in/gallery
+- XML sitemap: https://ezygotravel.in/sitemap.xml
+
+Individual active visa, package and gallery pages use clean URLs and are listed in the XML sitemap. Information such as visa validity, requirements, availability and package details can change; use the current website content and contact EzyGo Travels for confirmation.

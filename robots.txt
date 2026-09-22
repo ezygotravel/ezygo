@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /api/admin
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /api/admin
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /api/admin
+
+Sitemap: https://ezygotravel.in/sitemap.xml
