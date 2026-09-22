@@ -158,8 +158,18 @@ export async function onRequest(context) {
       if (!safeTables.has(table) || table === 'feedback') return json({ error: 'Invalid table' }, 400);
       const record = { ...(body.record || {}) };
       if (record.sort_order === undefined) {
-        const rows = await req(`/rest/v1/${table}?select=sort_order&order=sort_order.desc&limit=1`);
-        record.sort_order = (rows?.[0]?.sort_order ?? -1) + 1;
+        // Keep an existing item's current position when it is edited.
+        // Only brand-new items are appended to the end; position changes
+        // continue to happen exclusively through the admin reorder controls.
+        const existing = record.id
+          ? await req(`/rest/v1/${table}?id=eq.${encodeURIComponent(record.id)}&select=sort_order&limit=1`)
+          : [];
+        if (existing?.length) {
+          record.sort_order = existing[0].sort_order;
+        } else {
+          const rows = await req(`/rest/v1/${table}?select=sort_order&order=sort_order.desc&limit=1`);
+          record.sort_order = (rows?.[0]?.sort_order ?? -1) + 1;
+        }
       }
       const out = await req(`/rest/v1/${table}?on_conflict=id`, {
         method: 'POST',
