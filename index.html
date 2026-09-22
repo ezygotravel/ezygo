@@ -606,9 +606,9 @@ img{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user
 
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}),{once:true});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js?v=14').catch(()=>{}),{once:true});
 }
 </script>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=14"></script>
 </body></html>
